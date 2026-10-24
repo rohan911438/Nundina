@@ -1,0 +1,22 @@
+# Local tooling
+.claude/
+
+# Dependencies and builds
+node_modules/
+dist/
+.next/
+out/
+cache/
+broadcast/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
