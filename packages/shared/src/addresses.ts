@@ -17,18 +17,19 @@ export const TOKENS = {
 } as const;
 
 export type ContractName =
+  | "Timelock"
   | "IdentityRegistry"
   | "ReputationRegistry"
   | "ProviderRegistry"
   | "OutcomeResolver"
+  | "PushPriceAdapter"
   | "AproPushAdapter"
-  | "SupraPullAdapter"
+  | "SupraPushAdapter"
+  | "TouchVerifier"
   | "SignalBook"
   | "RevenueRouter"
-  | "PerformanceEscrow"
-  | "Timelock"
-  | "MockUSDT"
-  | "MockAggregator";
+  | "SignerCreditVerifier"
+  | "PerformanceEscrow";
 
 export type Deployment = Partial<Record<ContractName, Address>> & {
   startBlock?: number;
@@ -47,7 +48,17 @@ export function contractAddress(chainId: number, name: ContractName): Address {
   return a;
 }
 
-/** Payment token for a chain: deployed mock on testnet if present, else mainnet USDT. */
+/** Payment token for a chain: deployed mock on testnet/local if present, else mainnet USDT. */
 export function paymentToken(chainId: number): Address {
   return deployment(chainId).tokens?.USDT ?? EXTERNAL.usdt;
+}
+
+/** USDC.e (EIP-3009) for a chain. */
+export function usdcE(chainId: number): Address {
+  return deployment(chainId).tokens?.USDC_E ?? EXTERNAL.usdcE;
+}
+
+/** True if the chain has a Nundina deployment in addresses.json. */
+export function isDeployed(chainId: number): boolean {
+  return Boolean(deployment(chainId).SignalBook);
 }

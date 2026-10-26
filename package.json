@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@11.13.1",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",
@@ -12,7 +14,16 @@
     "dev": "pnpm -r --parallel --if-present dev",
     "db:up": "docker compose up -d postgres",
     "contracts:build": "cd contracts && forge build",
-    "contracts:test": "cd contracts && forge test"
+    "contracts:test": "cd contracts && forge test",
+    "contracts:deploy:local": "tsx scripts/contracts.ts deploy local",
+    "contracts:deploy:testnet": "tsx scripts/contracts.ts deploy testnet",
+    "contracts:deploy:mainnet": "tsx scripts/contracts.ts deploy mainnet",
+    "contracts:dry-run:mainnet": "tsx scripts/contracts.ts dry-run mainnet",
+    "contracts:verify": "tsx scripts/contracts.ts verify testnet",
+    "contracts:smoke": "tsx scripts/contracts.ts smoke testnet",
+    "contracts:smoke:local": "tsx scripts/contracts.ts smoke local",
+    "contracts:export": "tsx scripts/export-abis.ts && tsx scripts/sync-addresses.ts",
+    "chain:local": "anvil --chain-id 31337 --block-time 2"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
