@@ -28,9 +28,8 @@ contract OutcomeResolverTest is Fixtures {
         oracle = new MockPriceAdapter(address(this));
         oracle.push(BTC, BTC_PRICE, t0);
         oracle.setAcceptAll(true);
-        resolver = new OutcomeResolver(
-            admin, IPriceAdapter(address(oracle)), ITouchVerifier(address(oracle)), touchEnabled
-        );
+        resolver =
+            new OutcomeResolver(admin, IPriceAdapter(address(oracle)), ITouchVerifier(address(oracle)), touchEnabled);
         _deployCore(resolver);
         vm.prank(admin);
         resolver.setBook(book);
@@ -54,7 +53,7 @@ contract OutcomeResolverTest is Fixtures {
         resolver.proveTouch(id, s, 0, _proof(84_100e8, t0 + 3600));
         assertTrue(book.isRevealed(id)); // resolution doubles as reveal
         assertFalse(resolver.isOpen(id));
-        (, , bool f) = _outcome(id);
+        (,, bool f) = _outcome(id);
         assertFalse(f);
         vm.expectRevert(OutcomeResolver.ChallengeWindowOpen.selector);
         resolver.finalize(id);

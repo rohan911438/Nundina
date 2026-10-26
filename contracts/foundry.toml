@@ -7,7 +7,7 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
 via_ir = true
-fs_permissions = [{ access = "read-write", path = "../packages/shared" }, { access = "read", path = "./" }]
+fs_permissions = [{ access = "read-write", path = "../packages/shared" }, { access = "read-write", path = "./deployments" }, { access = "read", path = "./" }]
 remappings = [
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
   "forge-std/=lib/forge-std/src/",
@@ -31,3 +31,11 @@ hashkey_testnet = { key = "${BLOCKSCOUT_API_KEY}", chain = 133, url = "https://t
 
 [lint]
 lint_on_build = false
+
+[profile.deep.fuzz]
+runs = 10000
+
+[profile.deep.invariant]
+runs = 10000
+depth = 16
+fail_on_revert = false

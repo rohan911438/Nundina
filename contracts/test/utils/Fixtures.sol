@@ -11,6 +11,7 @@ import {IIdentityRegistry} from "../../src/interfaces/IERC8004.sol";
 import {IOutcomeResolver} from "../../src/interfaces/IOutcomeResolver.sol";
 import {SignalLib} from "../../src/lib/SignalLib.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
+import {MockERC3009} from "../mocks/MockERC3009.sol";
 import {MockResolver} from "../mocks/MockResolver.sol";
 
 /// @dev Shared deployment + helpers for Nundina contract tests.
@@ -41,7 +42,7 @@ abstract contract Fixtures is Test {
         (kycIssuer, kycIssuerKey) = makeAddrAndKey("kycIssuer");
         (provider, providerKey) = makeAddrAndKey("provider");
         usdt = new MockERC20("Tether", "USDT", 6);
-        usdc = new MockERC20("Bridged USDC", "USDC.e", 6);
+        usdc = new MockERC3009("Bridged USDC", "USDC.e");
         identity = new IdentityRegistry();
         reputation = new ReputationRegistry(IIdentityRegistry(address(identity)), admin);
         address[] memory tokens = new address[](2);
