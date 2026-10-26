@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+fs_permissions = [{ access = "read-write", path = "../packages/shared" }, { access = "read", path = "./" }]
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[rpc_endpoints]
+hashkey = "${HSK_RPC_URL}"
+hashkey_testnet = "${HSK_TESTNET_RPC_URL}"
+
+[etherscan]
+hashkey = { key = "${BLOCKSCOUT_API_KEY}", chain = 177, url = "https://hashkey.blockscout.com/api" }
+hashkey_testnet = { key = "${BLOCKSCOUT_API_KEY}", chain = 133, url = "https://testnet-explorer.hsk.xyz/api" }

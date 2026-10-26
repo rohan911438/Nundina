@@ -1,0 +1,23 @@
+{
+  "name": "nundina",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.13.1",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "dev": "pnpm -r --parallel --if-present dev",
+    "db:up": "docker compose up -d postgres",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}
