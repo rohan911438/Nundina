@@ -66,7 +66,8 @@ export function scoreView(s: ScoreRow | null | undefined) {
     alphaBtc: Number(s?.alphaBtc ?? 0),
     maxDd: Number(s?.maxDd ?? 0),
     followerPnl: Number(s?.followerPnl ?? 0),
-    score: Number(s?.score ?? 0),
+    /** No score while on probation (n < 30). */
+    score: n < PROBATION_N ? null : Number(s?.score ?? 0),
     probation: n < PROBATION_N,
   };
 }

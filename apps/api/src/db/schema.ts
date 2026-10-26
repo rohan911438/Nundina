@@ -135,6 +135,10 @@ export const signals = pgTable(
     commitTx: text("commit_tx"),
     revealTx: text("reveal_tx"),
     resolveTx: text("resolve_tx"),
+    /** Proven touch / pending expiry from the resolver: { level, price, ts, tx } */
+    touchJson: jsonb("touch_json"),
+    /** Block of the SignalCommitted event (filled by the indexer). */
+    commitBlock: bigint("commit_block", { mode: "number" }),
     revealedAt: ts("revealed_at"),
     decidedAt: ts("decided_at"),
     purchaseCount: integer("purchase_count").notNull().default(0),
@@ -394,6 +398,14 @@ export const railPayments = pgTable("rail_payments", {
   receiptHash: text("receipt_hash"),
   adapterSig: text("adapter_sig"),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Projection cursor of the indexer (apps/indexer/src/sync.ts). */
+export const indexerCursor = pgTable("indexer_cursor", {
+  name: text("name").primaryKey(),
+  blockNumber: bigint("block_number", { mode: "number" }).notNull().default(0),
+  logIndex: integer("log_index").notNull().default(-1),
   updatedAt: updatedAt(),
 });
 

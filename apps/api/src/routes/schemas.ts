@@ -19,7 +19,7 @@ export const ScoreSchema = z
     alphaBtc: z.number(),
     maxDd: z.number(),
     followerPnl: z.number(),
-    score: z.number(),
+    score: z.number().nullable().openapi({ description: "0-100; null while on probation" }),
     probation: z.boolean().openapi({ description: "true while n < 30 settled signals" }),
   })
   .openapi("Score");

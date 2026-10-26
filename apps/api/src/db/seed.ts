@@ -23,6 +23,7 @@ import {
   users,
 } from "./schema.js";
 import { log } from "../lib/log.js";
+import { recomputeProvider } from "../jobs/scoring.js";
 
 const SEED_ID_BASE = 1_000_000n;
 const DAY = 86_400_000;
@@ -39,19 +40,13 @@ function rng(seed: number) {
 }
 
 const PROVIDERS = [
-  { handle: "satoshi_signals", displayName: "Satoshi Signals", kind: "human", winP: 0.64, n: 18, verified: true, price: "2000000", bio: "BTC swing trades. 1:2 minimum. Every call committed on-chain." },
-  { handle: "hk_alpha", displayName: "HK Alpha Desk", kind: "human", winP: 0.55, n: 14, verified: true, price: "1500000", bio: "Hong Kong session scalps on BTC and HSK." },
-  { handle: "momentum_bot", displayName: "Momentum Agent", kind: "agent", winP: 0.52, n: 12, verified: false, price: "500000", bio: "Strategy agent: 4h breakout + volume filter." },
-  { handle: "mean_revert", displayName: "Mean Revert Agent", kind: "agent", winP: 0.47, n: 9, verified: false, price: "500000", bio: "Strategy agent: fades 2σ moves." },
-  { handle: "consensus", displayName: "Consensus Aggregator", kind: "aggregator", winP: 0.6, n: 7, verified: false, price: "3000000", bio: "Buys the top providers' signals and only posts when they agree." },
+  { handle: "satoshi_signals", displayName: "Satoshi Signals", kind: "human", winP: 0.64, n: 32, verified: true, price: "2000000", bio: "BTC swing trades. 1:2 minimum. Every call committed on-chain." },
+  { handle: "hk_alpha", displayName: "HK Alpha Desk", kind: "human", winP: 0.55, n: 12, verified: true, price: "1500000", bio: "Hong Kong session scalps on BTC and HSK." },
+  { handle: "momentum_bot", displayName: "Momentum Agent", kind: "agent", winP: 0.52, n: 8, verified: false, price: "500000", bio: "Strategy agent: 4h breakout + volume filter." },
+  { handle: "mean_revert", displayName: "Mean Revert Agent", kind: "agent", winP: 0.47, n: 5, verified: false, price: "500000", bio: "Strategy agent: fades 2σ moves." },
+  { handle: "consensus", displayName: "Consensus Aggregator", kind: "aggregator", winP: 0.6, n: 3, verified: false, price: "3000000", bio: "Buys the top providers' signals and only posts when they agree." },
 ] as const;
 
-function wilsonLb(wins: number, n: number, z = 1.96) {
-  if (n === 0) return 0;
-  const p = wins / n;
-  const d = 1 + (z * z) / n;
-  return (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d;
-}
 
 export async function seed() {
   const d = db();
@@ -227,49 +222,8 @@ export async function seed() {
   await d.insert(settlements).values(settleRows);
   if (purchaseRows.length) await d.insert(purchases).values(purchaseRows);
 
-  // ── scores (simple version of prompt 08's engine; 08 overwrites these)
-  const scoreRows: (typeof providerScores.$inferInsert)[] = [];
-  for (const prov of provRows) {
-    const all = results[prov.id] ?? [];
-    for (const period of ["7d", "30d", "all"] as const) {
-      const cutoff = period === "7d" ? now - 7 * DAY : period === "30d" ? now - 30 * DAY : 0;
-      for (const market of ["all", "BTC/USD", "HSK/USD"]) {
-        const rows = all.filter((x) => x.at >= cutoff && (market === "all" || x.market === market));
-        const decided = rows.filter((x) => x.outcome !== "VOID");
-        const wins = decided.filter((x) => x.outcome === "WIN").length;
-        const n = decided.length;
-        const expectancy = n ? decided.reduce((a, x) => a + x.r, 0) / n : 0;
-        let peak = 0;
-        let eq = 0;
-        let maxDd = 0;
-        for (const x of decided) {
-          eq += x.r;
-          peak = Math.max(peak, eq);
-          maxDd = Math.max(maxDd, peak - eq);
-        }
-        const wlb = wilsonLb(wins, n);
-        const score = Math.max(0, Math.min(100, 100 * (0.6 * wlb + 0.4 * Math.max(0, Math.min(1, (expectancy + 1) / 3)))));
-        scoreRows.push({
-          providerId: prov.id,
-          period,
-          market,
-          n,
-          wins,
-          losses: n - wins,
-          voids: rows.length - n,
-          winRate: (n ? wins / n : 0).toFixed(4),
-          wilsonLb: wlb.toFixed(4),
-          expectancyR: expectancy.toFixed(4),
-          alphaBtc: (expectancy * 0.8 - 0.1).toFixed(4),
-          maxDd: maxDd.toFixed(4),
-          followerPnl: (expectancy * n * 100).toFixed(2),
-          score: score.toFixed(2),
-          ranked: n >= 30,
-        });
-      }
-    }
-  }
-  await d.insert(providerScores).values(scoreRows);
+  // ── scores, computed by the same engine the API uses (packages/shared/src/scoring)
+  for (const prov of provRows) await recomputeProvider(prov.id, { fetchPrices: false, now });
 
   // ── shadow (observed) channels
   const chans = await d

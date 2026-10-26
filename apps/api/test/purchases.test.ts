@@ -18,6 +18,7 @@ import { resetEnv } from "../src/env.js";
 import { stopQueue } from "../src/jobs/queue.js";
 import { processVerify } from "../src/jobs/hspRetry.js";
 import { log, testLogLines } from "../src/lib/log.js";
+import { buyAndPay as payOf, newBuyer as buyerOf, signMandate, type Buyer } from "./buyer.js";
 import { canRunChain, startChain, type Chain } from "./chain.js";
 import { getJson, INTERNAL, makeProvider, postJson } from "./helpers.js";
 
@@ -29,42 +30,8 @@ describe.skipIf(!canRunChain)("purchases (MockRail on anvil)", () => {
   let chain: Chain;
   let signalId: bigint;
 
-  /** A buyer with gas, USDT, a user row and a registered encryption key. */
-  async function newBuyer(usd = "5") {
-    const account = privateKeyToAccount(generatePrivateKey());
-    await chain.fund(account, usd);
-    const [u] = await db().insert(users).values({ wallet: account.address.toLowerCase() }).returning();
-    const enc = deriveEncryptionKey(await account.signMessage({ message: ENCRYPTION_KEY_MESSAGE }));
-    const headers = { ...INTERNAL, "x-act-as-user": String(u!.id) };
-    const r = await postJson("/me/encryption-key", { publicKey: enc.publicKey }, headers);
-    expect(r.status).toBe(200);
-    return { account, userId: u!.id, enc, headers };
-  }
-
-  async function signMandate(account: PrivateKeyAccount, intent: any): Promise<Hex> {
-    const td = intent.mandateTypedData;
-    return account.signTypedData({
-      domain: td.domain,
-      types: td.types,
-      primaryType: "Mandate",
-      message: { ...td.message, amount: BigInt(td.message.amount), chainId: BigInt(td.message.chainId), deadline: BigInt(td.message.deadline) },
-    });
-  }
-
-  async function buyAndPay(b: Awaited<ReturnType<typeof newBuyer>>, opts: { amount?: bigint; to?: Hex } = {}) {
-    const created = await postJson("/purchases", { signalId: signalId.toString() }, b.headers);
-    expect(created.status).toBe(201);
-    const { purchaseId, intent } = created.body;
-    expect(intent.payee).toBe(escrow);
-    const txHash = await chain.transfer(b.account, chain.usdt, opts.to ?? escrow, opts.amount ?? PRICE);
-    const sub = await postJson(
-      `/purchases/${purchaseId}/submit`,
-      { mandateSig: await signMandate(b.account, intent), txHash },
-      { ...b.headers, "idempotency-key": `idem-${purchaseId}` },
-    );
-    expect(sub.status).toBe(202);
-    return { purchaseId: purchaseId as string, txHash, intent };
-  }
+  const newBuyer = (usd = "5") => buyerOf(chain, usd);
+  const buyAndPay = (b: Buyer, opts: { amount?: bigint; to?: Hex } = {}) => payOf(chain, b, signalId, PRICE, opts);
 
   beforeAll(async () => {
     chain = await startChain();

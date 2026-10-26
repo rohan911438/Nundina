@@ -22,6 +22,10 @@ export type VerifyResult =
   | { status: "FAILED_RETRYABLE" | "REJECTED"; reason: string }
   | { status: "SKIPPED"; reason: string };
 
+/** Subquery: credited purchases of a signal. */
+export const paidCount = (signalId: bigint) =>
+  dsql<number>`(select count(*)::int from purchases where signal_id = ${signalId} and status in ('CREDITED','KEY_SENT','SETTLED_WIN','REFUNDED'))`;
+
 const ZERO32 = `0x${"00".repeat(32)}` as Hex;
 
 async function setStatus(id: string, fields: Partial<typeof purchases.$inferInsert>) {
@@ -125,7 +129,8 @@ export async function processVerify(purchaseId: string, attempt = 0): Promise<Ve
       .where(eq(purchases.id, p.id));
     await tx
       .update(signals)
-      .set({ purchaseCount: dsql`${signals.purchaseCount} + 1`, updatedAt: new Date() })
+      // absolute count, so the indexer and this job never double count
+      .set({ purchaseCount: paidCount(p.signalId), updatedAt: new Date() })
       .where(eq(signals.id, p.signalId));
   });
   log.info({ purchaseId: p.id, signalId: p.signalId.toString(), creditedTx }, "payment credited");

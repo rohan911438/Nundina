@@ -90,7 +90,7 @@ function sortKey(p: ProviderOut, sort: (typeof SORTS)[number]): number {
     case "newest":
       return Date.parse(p.createdAt);
     default:
-      return p.score.score;
+      return p.score.score ?? -1;
   }
 }
 

@@ -1,0 +1,31 @@
+{
+  "name": "@nundina/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --env-file-if-exists=../../.env src/run.ts dev",
+    "start": "tsx --env-file-if-exists=../../.env src/run.ts start",
+    "ponder": "ponder",
+    "sync": "tsx --env-file-if-exists=../../.env src/sync.ts",
+    "reproject": "tsx --env-file-if-exists=../../.env src/sync.ts --reproject",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nundina/api": "workspace:*",
+    "@nundina/shared": "workspace:*",
+    "drizzle-orm": "0.45.4",
+    "pg-boss": "12.38.0",
+    "ponder": "0.18.2",
+    "postgres": "3.4.9",
+    "viem": "2.57.11",
+    "hono": "4.13.14"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}

@@ -1,0 +1,141 @@
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
+scalar BigInt
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type ViewPageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type Meta {
+  status: JSON
+}
+
+type Query {
+  onchainEvent(id: String!): onchainEvent
+  onchainEvents(where: onchainEventFilter, orderBy: String, orderDirection: String, before: String, after: String, limit: Int, offset: Int): onchainEventPage!
+  _meta: Meta
+}
+
+type onchainEvent {
+  id: String!
+  chainId: Int!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  txHash: String!
+  logIndex: Int!
+  contract: String!
+  event: String!
+  args: JSON!
+}
+
+type onchainEventPage {
+  items: [onchainEvent!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input onchainEventFilter {
+  AND: [onchainEventFilter]
+  OR: [onchainEventFilter]
+  id: String
+  id_not: String
+  id_in: [String]
+  id_not_in: [String]
+  id_contains: String
+  id_not_contains: String
+  id_starts_with: String
+  id_ends_with: String
+  id_not_starts_with: String
+  id_not_ends_with: String
+  id_contains_nocase: String
+  id_not_contains_nocase: String
+  id_starts_with_nocase: String
+  id_ends_with_nocase: String
+  id_not_starts_with_nocase: String
+  id_not_ends_with_nocase: String
+  chainId: Int
+  chainId_not: Int
+  chainId_in: [Int]
+  chainId_not_in: [Int]
+  chainId_gt: Int
+  chainId_lt: Int
+  chainId_gte: Int
+  chainId_lte: Int
+  blockNumber: BigInt
+  blockNumber_not: BigInt
+  blockNumber_in: [BigInt]
+  blockNumber_not_in: [BigInt]
+  blockNumber_gt: BigInt
+  blockNumber_lt: BigInt
+  blockNumber_gte: BigInt
+  blockNumber_lte: BigInt
+  blockTimestamp: BigInt
+  blockTimestamp_not: BigInt
+  blockTimestamp_in: [BigInt]
+  blockTimestamp_not_in: [BigInt]
+  blockTimestamp_gt: BigInt
+  blockTimestamp_lt: BigInt
+  blockTimestamp_gte: BigInt
+  blockTimestamp_lte: BigInt
+  txHash: String
+  txHash_not: String
+  txHash_in: [String]
+  txHash_not_in: [String]
+  txHash_contains: String
+  txHash_not_contains: String
+  txHash_starts_with: String
+  txHash_ends_with: String
+  txHash_not_starts_with: String
+  txHash_not_ends_with: String
+  logIndex: Int
+  logIndex_not: Int
+  logIndex_in: [Int]
+  logIndex_not_in: [Int]
+  logIndex_gt: Int
+  logIndex_lt: Int
+  logIndex_gte: Int
+  logIndex_lte: Int
+  contract: String
+  contract_not: String
+  contract_in: [String]
+  contract_not_in: [String]
+  contract_contains: String
+  contract_not_contains: String
+  contract_starts_with: String
+  contract_ends_with: String
+  contract_not_starts_with: String
+  contract_not_ends_with: String
+  contract_contains_nocase: String
+  contract_not_contains_nocase: String
+  contract_starts_with_nocase: String
+  contract_ends_with_nocase: String
+  contract_not_starts_with_nocase: String
+  contract_not_ends_with_nocase: String
+  event: String
+  event_not: String
+  event_in: [String]
+  event_not_in: [String]
+  event_contains: String
+  event_not_contains: String
+  event_starts_with: String
+  event_ends_with: String
+  event_not_starts_with: String
+  event_not_ends_with: String
+  event_contains_nocase: String
+  event_not_contains_nocase: String
+  event_starts_with_nocase: String
+  event_ends_with_nocase: String
+  event_not_starts_with_nocase: String
+  event_not_ends_with_nocase: String
+}
