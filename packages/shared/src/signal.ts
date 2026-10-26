@@ -36,7 +36,10 @@ export interface MarketInfo {
   base: string;
   aproFeed: Address;
   supraPairId: number | null;
-  binanceSymbol: string;
+  /** Off-chain price stream used for charts and early touch detection. */
+  cex: { venue: "binance" | "gate"; symbol: string; ws: string };
+  /** Display decimals for prices. */
+  displayDecimals: number;
 }
 
 export const MARKETS = {
@@ -46,7 +49,8 @@ export const MARKETS = {
     base: "BTC",
     aproFeed: EXTERNAL.aproBtcUsd,
     supraPairId: 0,
-    binanceSymbol: "btcusdt",
+    cex: { venue: "binance", symbol: "BTCUSDT", ws: "btcusdt" },
+    displayDecimals: 2,
   },
   "HSK/USD": {
     id: marketId("HSK/USD"),
@@ -54,7 +58,8 @@ export const MARKETS = {
     base: "HSK",
     aproFeed: EXTERNAL.aproHskUsd,
     supraPairId: null, // TODO(confirm): Supra pair index for HSK/USD
-    binanceSymbol: "hskusdt",
+    cex: { venue: "gate", symbol: "HSK_USDT", ws: "HSK_USDT" }, // not listed on Binance
+    displayDecimals: 4,
   },
 } as const satisfies Record<string, MarketInfo>;
 
