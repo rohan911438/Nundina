@@ -20,9 +20,11 @@ import { getAuth, requireUser, type AppEnv, type Auth } from "../auth/context.js
 import { addr, publicClient } from "../chain/clients.js";
 import { relay } from "../chain/relayer.js";
 import { enqueue, JOBS } from "../jobs/queue.js";
+import { scheduleSafetyReveal } from "../jobs/reveal.js";
 import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
-import { random32Hex, sealHex, unsealHex } from "../lib/crypto.js";
-import { encryptSignal } from "../services/keyService.js";
+import { random32Hex } from "../lib/crypto.js";
+import { sealHex, unsealHex } from "../keys/masterKey.js";
+import { encryptSignal } from "../keys/keyService.js";
 
 /** How long a provider has to sign after `prepare`. */
 const AUTH_DEADLINE_S = 30 * 60;
@@ -267,13 +269,29 @@ export const draftRoutes = new Hono<AppEnv>()
           tgChatId: draft.sourceChatId,
           tgMessageId: draft.sourceMessageId,
         })
-        .onConflictDoNothing();
+        // The indexer (prompt 08) may have inserted the row from the SignalCommitted event first:
+        // fill in the off-chain material, but only for the same commitment.
+        .onConflictDoUpdate({
+          target: signals.id,
+          set: {
+            ciphertext: enc.ciphertext,
+            aesKeyEnc: enc.aesKeyEnc,
+            saltEnc: draft.saltEnc,
+            cipherUri,
+            commitTx: result.hash,
+            tgChatId: draft.sourceChatId,
+            tgMessageId: draft.sourceMessageId,
+            updatedAt: new Date(),
+          },
+          setWhere: eq(signals.commitHash, commitHash),
+        });
       await tx
         .update(signalDrafts)
         .set({ status: "committed", signalId: args.id, updatedAt: new Date() })
         .where(eq(signalDrafts.id, draft.id));
     });
     await enqueue(JOBS.notifyLocked, { signalId: args.id.toString(), providerId: provider.id }, `locked:${args.id}`);
+    await scheduleSafetyReveal(args.id, new Date(Number(signal.validUntil) * 1000));
 
     return c.json({ signalId: args.id.toString(), commitHash, txHash: result.hash, status: "COMMITTED" }, 201);
   });

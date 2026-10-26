@@ -6,6 +6,8 @@ import { log } from "../lib/log.js";
 export const JOBS = {
   notifyLocked: "notify.locked",
   notifyResult: "notify.result",
+  notifyKeyDelivered: "notify.keyDelivered",
+  hspVerify: "hsp.verify",
   reveal: "signal.reveal",
   score: "score.recompute",
 } as const;
@@ -28,11 +30,22 @@ export function queue(): Promise<PgBoss> {
   return starting;
 }
 
-/** Enqueues a job; idempotent when `singletonKey` is set. Never throws into request handlers. */
-export async function enqueue(name: JobName, data: object, singletonKey?: string): Promise<string | null> {
+export interface EnqueueOptions {
+  /** Deduplicates: a second job with the same key is dropped while the first is queued. */
+  singletonKey?: string;
+  /** Delay in seconds, or an absolute time. */
+  startAfter?: number | Date;
+}
+
+/** Enqueues a job. Never throws into request handlers. */
+export async function enqueue(name: JobName, data: object, opts: EnqueueOptions | string = {}): Promise<string | null> {
+  const o = typeof opts === "string" ? { singletonKey: opts } : opts;
   try {
     const b = await queue();
-    return await b.send(name, data, singletonKey ? { singletonKey } : {});
+    return await b.send(name, data, {
+      ...(o.singletonKey ? { singletonKey: o.singletonKey } : {}),
+      ...(o.startAfter != null ? { startAfter: o.startAfter } : {}),
+    });
   } catch (err) {
     log.error({ err, name }, "enqueue failed");
     return null;

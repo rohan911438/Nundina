@@ -8,7 +8,7 @@ export default defineConfig({
     hookTimeout: 180_000,
     env: {
       NODE_ENV: "test",
-      LOG_LEVEL: "silent",
+      LOG_LEVEL: "debug",
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgres://nundina:nundina@localhost:5432/nundina_test",
       KEY_SERVICE_MASTER_KEY: "11".repeat(32),
       INTERNAL_SECRET: "test-internal-secret-0123456789",

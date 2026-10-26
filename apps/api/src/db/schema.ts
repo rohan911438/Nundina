@@ -173,7 +173,12 @@ export const purchases = pgTable(
     /** ACCEPT | REJECT | RETRYABLE */
     outcomeClass: text("outcome_class"),
     creditedTx: text("credited_tx"),
-    /** PENDING | SUBMITTED | ACCEPTED | CREDITED | KEY_SENT | SETTLED_WIN | REFUNDED | FAILED */
+    /** HSP explorer link (or the chain explorer for the mock rail). */
+    explorerUrl: text("explorer_url"),
+    /** recoverUncredited tx when a rejected transfer was returned to the payer. */
+    recoveryTx: text("recovery_tx"),
+    rejectReason: text("reject_reason"),
+    /** PENDING | SUBMITTED | CREDITED | KEY_SENT | SETTLED_WIN | REFUNDED | REJECTED | FAILED_RETRYABLE */
     status: text("status").notNull().default("PENDING"),
     idempotencyKey: text("idempotency_key"),
     error: text("error"),
@@ -372,5 +377,24 @@ export const priceCandles = pgTable(
   },
   (t) => [primaryKey({ columns: [t.market, t.interval, t.openTime] })],
 );
+
+/** Payment-rail records (mandate, settlement tx, receipt); one row per HSP paymentId. */
+export const railPayments = pgTable("rail_payments", {
+  /** HSP paymentId = mandateHash. */
+  id: text("id").primaryKey(),
+  /** mock | hsp */
+  rail: text("rail").notNull(),
+  mandateJson: jsonb("mandate_json").notNull(),
+  mandateSig: text("mandate_sig"),
+  txHash: text("tx_hash").unique(),
+  /** CREATED | SUBMITTED | VERIFIED | REJECTED */
+  status: text("status").notNull().default("CREATED"),
+  outcomeClass: text("outcome_class"),
+  receiptJson: jsonb("receipt_json"),
+  receiptHash: text("receipt_hash"),
+  adapterSig: text("adapter_sig"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
 
 export const now = sql`now()`;

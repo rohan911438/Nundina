@@ -11,6 +11,7 @@ import { draftRoutes } from "./routes/drafts.js";
 import { healthRoutes } from "./routes/health.js";
 import { providerRoutes } from "./routes/providers.js";
 import { publicRoutes } from "./routes/public.js";
+import { purchaseRoutes } from "./routes/purchases.js";
 
 /** Builds the Hono app (no server; `index.ts` serves it, tests call `app.request`). */
 export function createApp() {
@@ -48,6 +49,7 @@ export function createApp() {
   app.route("/", publicRoutes);
   app.route("/", providerRoutes);
   app.route("/", draftRoutes);
+  app.route("/", purchaseRoutes);
 
   app.doc31("/openapi.json", {
     openapi: "3.1.0",

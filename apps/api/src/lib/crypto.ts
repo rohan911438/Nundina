@@ -3,7 +3,6 @@ import { randomBytes } from "@noble/ciphers/utils.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-import { env } from "../env.js";
 
 /** AES-256-GCM encrypt; output = iv(12) || ciphertext+tag. */
 export function aesEncrypt(key: Uint8Array, plaintext: Uint8Array): Uint8Array {
@@ -18,22 +17,6 @@ export function aesEncrypt(key: Uint8Array, plaintext: Uint8Array): Uint8Array {
 export function aesDecrypt(key: Uint8Array, sealed: Uint8Array): Uint8Array {
   return gcm(key, sealed.subarray(0, 12)).decrypt(sealed.subarray(12));
 }
-
-function masterKey(): Uint8Array {
-  return hexToBytes(env().KEY_SERVICE_MASTER_KEY);
-}
-
-/** Encrypts a secret at rest with the master key (KMS later). */
-export function seal(plaintext: Uint8Array): Uint8Array {
-  return aesEncrypt(masterKey(), plaintext);
-}
-
-export function unseal(sealed: Uint8Array): Uint8Array {
-  return aesDecrypt(masterKey(), sealed);
-}
-
-export const sealHex = (hex: `0x${string}`) => seal(hexToBytes(hex.slice(2)));
-export const unsealHex = (b: Uint8Array) => `0x${bytesToHex(unseal(b))}` as `0x${string}`;
 
 export function random32Hex(): `0x${string}` {
   return `0x${bytesToHex(randomBytes(32))}`;

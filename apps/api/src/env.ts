@@ -21,6 +21,8 @@ const EnvSchema = z.object({
   RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
 
   KEY_SERVICE_MASTER_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/, "32-byte hex"),
+  /** Previous master key during rotation (rows sealed with it still open). */
+  KEY_SERVICE_MASTER_KEY_PREVIOUS: z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^[0-9a-fA-F]{64}$/).optional()),
   INTERNAL_SECRET: z.string().min(16),
   SESSION_SECRET: optional,
   TELEGRAM_BOT_TOKEN: optional,
@@ -30,6 +32,15 @@ const EnvSchema = z.object({
   HSP_API_KEY: optional,
   HSP_CHAIN: optional,
   HSP_ADAPTER_ADDRESS: optional,
+  HSP_FACILITATOR_URL: optional,
+  /** Base URL of the HSP explorer (defaults to <coordinator>/explorer). */
+  HSP_EXPLORER_URL: optional,
+  /** Mock rail adapter key (signs receipts); defaults to a key derived from INTERNAL_SECRET. */
+  MOCK_ADAPTER_PRIVATE_KEY: optionalHex32,
+  /** USDC.e EIP-3009 one-transaction purchase path. */
+  FAST_PATH_ENABLED: z.preprocess((v) => v === "true" || v === "1", z.boolean()).default(false),
+  /** Start pg-boss workers in this process (hsp.verify, signal.reveal). */
+  RUN_WORKERS: z.preprocess((v) => v !== "false" && v !== "0", z.boolean()).default(true),
 
   ANTHROPIC_API_KEY: optional,
   LOG_LEVEL: z.string().default("info"),
