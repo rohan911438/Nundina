@@ -1,0 +1,38 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+fs_permissions = [{ access = "read-write", path = "../packages/shared" }, { access = "read-write", path = "./deployments" }, { access = "read", path = "./" }]
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[rpc_endpoints]
+hashkey = "${HSK_RPC_URL}"
+hashkey_testnet = "${HSK_TESTNET_RPC_URL}"
+
+
+[lint]
+lint_on_build = false
+
+[profile.deep.fuzz]
+runs = 10000
+
+[profile.deep.invariant]
+runs = 10000
+depth = 16
+fail_on_revert = false

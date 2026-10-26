@@ -1,22 +1,16 @@
-# Local tooling
-.claude/
-
-# Dependencies and builds
 node_modules/
-dist/
-.next/
-out/
-cache/
-broadcast/
-
-# Secrets
 .env
 .env.*
 !.env.example
-*.key
-
-# OS / editor
+out/
+cache/
+.next/
+dist/
+coverage/
+.ponder/
+*.log
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
+# forge broadcast logs: keep only testnet/mainnet runs
+contracts/broadcast/*
+!contracts/broadcast/Deploy.s.sol/
+contracts/broadcast/Deploy.s.sol/31337/

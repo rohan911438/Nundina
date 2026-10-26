@@ -1,0 +1,24 @@
+{
+  "chainId": 177,
+  "verifyingContract": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "signal": {
+    "provider": "0x1111111111111111111111111111111111111111",
+    "market": "0xee62665949c883f9e0f6f002eac32e00bd59dfe6c34e92a91c37d6a8322d6489",
+    "side": 0,
+    "entry": "8150000000000",
+    "takeProfit": "8400000000000",
+    "stopLoss": "8020000000000",
+    "validUntil": "1800086400",
+    "pricePerSub": "1500000",
+    "upstream": [
+      "7",
+      "9"
+    ],
+    "upstreamBps": [
+      3000,
+      2000
+    ],
+    "salt": "0x00000000000000000000000000000000000000000000000000000000000000aa"
+  },
+  "commitHash": "0x00aefbf9af07098cf4353e0423c52efbcf00d65a7aad88c495c0e5d5962f3b86"
+}
