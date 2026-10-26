@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+/*
+ * Tokens. Dark is the default (most visitors come from Telegram at night); light follows the OS
+ * unless the user picked one. Contrast of text/muted/win/loss/locked on background and surface
+ * is ≥ 4.5:1 in both themes (checked in test/tokens.test.ts).
+ */
+:root {
+  --bg: #0a0b0d;
+  --surface: #121418;
+  --surface-2: #181b21;
+  --text: #eceef2;
+  --muted: #9aa1ad;
+  --border: #252932;
+  --accent: #a3a8ff;
+  --accent-ink: #0a0b0d;
+  --win: #3ddc97;
+  --loss: #ff6b6b;
+  --locked: #f5b84a;
+  --void: #a0a6b0;
+  --grid: rgb(255 255 255 / 0.035);
+  --glow: rgb(120 126 255 / 0.18);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --surface-2: #f0f0ed;
+    --text: #121316;
+    --muted: #575d68;
+    --border: #e1e1dc;
+    --accent: #3b3fc4;
+    --accent-ink: #ffffff;
+    --win: #0d7a4c;
+    --loss: #c0282d;
+    --locked: #8a5a00;
+    --void: #5f6570;
+    --grid: rgb(0 0 0 / 0.04);
+    --glow: rgb(59 63 196 / 0.10);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #f0f0ed;
+  --text: #121316;
+  --muted: #575d68;
+  --border: #e1e1dc;
+  --accent: #3b3fc4;
+  --accent-ink: #ffffff;
+  --win: #0d7a4c;
+  --loss: #c0282d;
+  --locked: #8a5a00;
+  --void: #5f6570;
+  --grid: rgb(0 0 0 / 0.04);
+  --glow: rgb(59 63 196 / 0.10);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+  --color-locked: var(--locked);
+  --color-void: var(--void);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-serif), Georgia, serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer utilities {
+  /* every number in tabular mono */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .bg-grid {
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .bg-glow {
+    background: radial-gradient(60% 50% at 50% 0%, var(--glow), transparent 70%);
+  }
+  .mask-fade-b {
+    mask-image: linear-gradient(to bottom, black 55%, transparent);
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+}
+
+/* theme toggle shows the theme you'd switch to */
+.i-moon {
+  display: none;
+}
+:root[data-theme="light"] .i-sun {
+  display: none;
+}
+:root[data-theme="light"] .i-moon {
+  display: inline;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .i-sun {
+    display: none;
+  }
+  :root:not([data-theme="dark"]) .i-moon {
+    display: inline;
+  }
+}
+
+/* ticker marquee; paused for people who prefer less motion */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 60s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .rise {
+    animation: none;
+  }
+}

@@ -1,8 +1,8 @@
 import { hashTypedData, keccak256, toBytes, isAddress, type Address, type Hex } from "viem";
 import { z } from "zod";
-import { Side } from "./enums.js";
-import { EXTERNAL } from "./addresses.js";
-import { COMMIT_AUTH_TYPES, SIGNAL_TYPES, nundinaDomain } from "./eip712.js";
+import { Side } from "./enums";
+import { EXTERNAL } from "./addresses";
+import { COMMIT_AUTH_TYPES, SIGNAL_TYPES, nundinaDomain } from "./eip712";
 
 export interface Signal {
   provider: Address;

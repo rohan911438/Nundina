@@ -10,7 +10,7 @@ import {
   isEncryptionPublicKey,
   unwrapKey,
   wrapKey,
-} from "../src/encryption.js";
+} from "../src/encryption";
 
 describe("encryption keys", () => {
   it("derives the same key from the same wallet signature", async () => {

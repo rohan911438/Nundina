@@ -1,6 +1,6 @@
 /**
  * Demo data so the frontend can be built against real-looking numbers:
- * 5 providers, 60 settled signals (+ a few live ones), purchases, settlements, scores, shadow channels.
+ * 5 providers, 68 settled signals (one provider ranked on all-time) (+ a few live ones), purchases, settlements, scores, shadow channels.
  * Idempotent: removes earlier seed rows first. Seed signal ids start at 1_000_001 so they never
  * collide with on-chain ids on a dev chain.
  *   pnpm --filter api db:seed
@@ -40,7 +40,7 @@ function rng(seed: number) {
 }
 
 const PROVIDERS = [
-  { handle: "satoshi_signals", displayName: "Satoshi Signals", kind: "human", winP: 0.64, n: 32, verified: true, price: "2000000", bio: "BTC swing trades. 1:2 minimum. Every call committed on-chain." },
+  { handle: "satoshi_signals", displayName: "Satoshi Signals", kind: "human", winP: 0.64, n: 40, verified: true, price: "2000000", bio: "BTC swing trades. 1:2 minimum. Every call committed on-chain." },
   { handle: "hk_alpha", displayName: "HK Alpha Desk", kind: "human", winP: 0.55, n: 12, verified: true, price: "1500000", bio: "Hong Kong session scalps on BTC and HSK." },
   { handle: "momentum_bot", displayName: "Momentum Agent", kind: "agent", winP: 0.52, n: 8, verified: false, price: "500000", bio: "Strategy agent: 4h breakout + volume filter." },
   { handle: "mean_revert", displayName: "Mean Revert Agent", kind: "agent", winP: 0.47, n: 5, verified: false, price: "500000", bio: "Strategy agent: fades 2σ moves." },
@@ -100,7 +100,7 @@ export async function seed() {
     )
     .returning();
 
-  // ── 60 settled signals, spread over the last 45 days
+  // ── 68 settled signals, spread over the last 45 days
   let nextId = SEED_ID_BASE + 1n;
   type SigRow = typeof signals.$inferInsert;
   const sigRows: SigRow[] = [];
@@ -215,6 +215,44 @@ export async function seed() {
       purchaseCount: pi + 1,
       source: "seed",
       createdAt: new Date(committedAt),
+    });
+  }
+
+  // ── one signal its provider never revealed: an automatic loss with the levels still hidden
+  {
+    const id = nextId++;
+    const prov = provRows[1]!;
+    const committedAt = now - 3 * DAY;
+    sigRows.push({
+      id,
+      providerId: prov.id,
+      commitHash: keccak256(toHex(`seed-commit-${id}`)),
+      market: "BTC/USD",
+      marketId: MARKETS["BTC/USD"].id,
+      validUntil: new Date(committedAt + DAY),
+      committedAt: new Date(committedAt),
+      price: prov.defaultPrice,
+      oraclePrice: toPrice("80900").toString(),
+      status: "UNREVEALED_LOSS",
+      outcome: "LOSS",
+      rMultiple: "-1.00",
+      commitTx: keccak256(toHex(`seed-tx-commit-${id}`)),
+      resolveTx: keccak256(toHex(`seed-tx-resolve-${id}`)),
+      decidedAt: new Date(committedAt + DAY + 6 * 3600_000),
+      purchaseCount: 0,
+      source: "seed",
+      createdAt: new Date(committedAt),
+    });
+    settleRows.push({
+      signalId: id,
+      outcome: "LOSS",
+      proofTx: null,
+      settleTx: keccak256(toHex(`seed-tx-settle-${id}`)),
+      payout: "0",
+      fee: "0",
+      refundsTotal: "0",
+      slashTotal: "0",
+      settledAt: new Date(committedAt + DAY + 7 * 3600_000),
     });
   }
 

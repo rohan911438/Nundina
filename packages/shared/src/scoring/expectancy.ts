@@ -1,4 +1,4 @@
-import type { ScoringSignal } from "./types.js";
+import type { ScoringSignal } from "./types";
 
 /** R result of one signal: wins at their R, losses and unrevealed at −1R, VOID → null (excluded). */
 export function rOf(s: Pick<ScoringSignal, "outcome" | "rMultiple">): number | null {

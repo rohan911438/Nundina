@@ -1,4 +1,4 @@
-import type { ScoringSignal } from "./types.js";
+import type { ScoringSignal } from "./types";
 
 /** Signal return in its own direction, in %. */
 export function signalReturnPct(s: Pick<ScoringSignal, "side" | "entry" | "exitPrice">): number | null {

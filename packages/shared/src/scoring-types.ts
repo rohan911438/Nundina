@@ -1,4 +1,4 @@
-import type { Outcome, Side } from "./enums.js";
+import type { Outcome, Side } from "./enums";
 
 /** One settled signal as input to scoring (prompt 08 implements the math). */
 export interface ScoredSignal {

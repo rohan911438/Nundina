@@ -7,7 +7,7 @@ import {
   scoreProvider,
   wilsonLowerBound,
   type ScoringSignal,
-} from "../index.js";
+} from "../index";
 
 const sig = (o: Partial<ScoringSignal>): ScoringSignal => ({
   outcome: "WIN",

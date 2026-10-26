@@ -86,6 +86,7 @@ export const SignalDetailSchema = SignalSchema.extend({
       settledAt: z.string(),
     })
     .nullable(),
+  paymentIds: z.array(z.string()).openapi({ description: "HSP payment ids of paid purchases (max 50)" }),
 }).openapi("SignalDetail");
 
 export const page = <T extends z.ZodTypeAny>(item: T) =>

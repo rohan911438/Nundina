@@ -1,8 +1,8 @@
-import { alphaVsBtc } from "./alpha.js";
-import { maxDrawdownR } from "./drawdown.js";
-import { expectancy } from "./expectancy.js";
-import { MIN_RANKED, type ScoreBreakdown, type ScoringSignal } from "./types.js";
-import { wilsonLowerBound } from "./wilson.js";
+import { alphaVsBtc } from "./alpha";
+import { maxDrawdownR } from "./drawdown";
+import { expectancy } from "./expectancy";
+import { MIN_RANKED, type ScoreBreakdown, type ScoringSignal } from "./types";
+import { wilsonLowerBound } from "./wilson";
 
 export const WEIGHTS = { wilson: 0.4, expectancy: 0.3, alpha: 0.2, drawdown: 0.1 } as const;
 export const EXPECTANCY_RANGE = [-1, 2] as const; // R

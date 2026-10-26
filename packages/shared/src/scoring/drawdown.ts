@@ -1,5 +1,5 @@
-import { rOf } from "./expectancy.js";
-import type { ScoringSignal } from "./types.js";
+import { rOf } from "./expectancy";
+import type { ScoringSignal } from "./types";
 
 /** Largest peak-to-trough fall of cumulative R, in R (≥ 0), in decision order. */
 export function maxDrawdownR(signals: Pick<ScoringSignal, "outcome" | "rMultiple" | "decidedAt">[]): number {

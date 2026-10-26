@@ -155,11 +155,13 @@ export async function listProviders(q: ProvidersQuery) {
   let all: ProviderOut[] = rows.map(({ p, s }) => publicProvider(p, s));
   if (q.observed && !q.type && !q.verified) all = all.concat(await observedProviders());
 
-  // Ranked providers first, then by the chosen key, then handle for a stable order.
+  // Ranked providers first, then by the chosen key, then sample size (orders the unscored probation
+  // group), then handle for a stable order.
   all.sort(
     (a, b) =>
       Number(a.score.probation) - Number(b.score.probation) ||
       sortKey(b, q.sort) - sortKey(a, q.sort) ||
+      b.score.n - a.score.n ||
       a.handle.localeCompare(b.handle),
   );
   const offset = decodeCursor<{ o: number }>(q.cursor)?.o ?? 0;
@@ -234,6 +236,12 @@ export async function signalDetail(id: bigint) {
   }
 
   const st = await db().query.settlements.findFirst({ where: eq(settlements.signalId, id) });
+  const pays = await db()
+    .select({ id: purchases.hspPaymentId })
+    .from(purchases)
+    .where(and(eq(purchases.signalId, id), isNotNull(purchases.hspPaymentId), inArray(purchases.status, PAID)))
+    .orderBy(purchases.id)
+    .limit(50);
   return {
     ...publicSignal(first.s, first.p),
     upstreamTree: tree,
@@ -248,6 +256,7 @@ export async function signalDetail(id: bigint) {
           settledAt: st.settledAt.toISOString(),
         }
       : null,
+    paymentIds: pays.map((p) => p.id!),
   };
 }
 

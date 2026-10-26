@@ -12,7 +12,7 @@ import {
   toUnits,
   serializeSignal,
   type Signal,
-} from "../src/index.js";
+} from "../src/index";
 
 const NOW = 1_800_000_000;
 const schema = makeSignalSchema(() => NOW);
