@@ -54,34 +54,58 @@ export const keys = rootEnv();
 export const canRunChain =
   existsSync(bin("anvil")) && Boolean(keys.DEPLOYER_PRIVATE_KEY && keys.RELAYER_PRIVATE_KEY && keys.CREDIT_SIGNER_PRIVATE_KEY);
 
-export async function startChain() {
+async function launch() {
   const port = 18_000 + Math.floor(Math.random() * 2_000);
   const rpc = `http://127.0.0.1:${port}`;
   const anvil: ChildProcess = spawn(bin("anvil"), ["--port", String(port), "--chain-id", "31337", "--silent"], { stdio: "ignore" });
+  const kill = () => {
+    if (anvil.pid && process.platform === "win32") spawnSync("taskkill", ["/F", "/T", "/PID", String(anvil.pid)]);
+    else anvil.kill();
+  };
   const pub = createPublicClient({ chain: localChain, transport: http(rpc) });
   const testClient = createTestClient({ chain: localChain, mode: "anvil", transport: http(rpc) });
-  for (let i = 0; ; i++) {
-    try {
-      await pub.getBlockNumber();
-      break;
-    } catch {
-      if (i > 60) throw new Error("anvil did not start");
-      await new Promise((r) => setTimeout(r, 250));
+  try {
+    for (let i = 0; ; i++) {
+      try {
+        await pub.getBlockNumber();
+        break;
+      } catch {
+        if (i > 60) throw new Error("anvil did not start");
+        await new Promise((r) => setTimeout(r, 250));
+      }
     }
+    const { privateKeyToAccount } = await import("viem/accounts");
+    for (const k of [keys.DEPLOYER_PRIVATE_KEY, keys.RELAYER_PRIVATE_KEY]) {
+      await testClient.setBalance({ address: privateKeyToAccount(k as Hex).address, value: parseEther("100") });
+    }
+    // DRY_RUN=true broadcasts but does not rewrite contracts/deployments/31337.json
+    try {
+      await promisify(execFile)(bin("forge"), ["script", "script/Deploy.s.sol", "--rpc-url", rpc, "--broadcast"], {
+        cwd: join(ROOT, "contracts"),
+        env: { ...process.env, ...keys, DRY_RUN: "true" },
+        timeout: 90_000,
+        maxBuffer: 64 * 1024 * 1024,
+      });
+    } catch (e) {
+      const err = e as { stderr?: string; stdout?: string; killed?: boolean };
+      const tail = (s?: string) => (s ?? "").split(/\r?\n/).filter(Boolean).slice(-15).join("\n");
+      throw new Error(`forge deploy failed on ${rpc}${err.killed ? " (timed out)" : ""}\n--- stderr\n${tail(err.stderr)}\n--- stdout\n${tail(err.stdout)}`);
+    }
+    const code = await pub.getCode({ address: contractAddress(31337, "SignalBook") });
+    if (!code || code === "0x") throw new Error("SignalBook not at the expected address; redeploy local + export");
+  } catch (e) {
+    kill();
+    throw e;
   }
-  const { privateKeyToAccount } = await import("viem/accounts");
-  for (const k of [keys.DEPLOYER_PRIVATE_KEY, keys.RELAYER_PRIVATE_KEY]) {
-    await testClient.setBalance({ address: privateKeyToAccount(k as Hex).address, value: parseEther("100") });
-  }
-  // DRY_RUN=true broadcasts but does not rewrite contracts/deployments/31337.json
-  await promisify(execFile)(bin("forge"), ["script", "script/Deploy.s.sol", "--rpc-url", rpc, "--broadcast"], {
-    cwd: join(ROOT, "contracts"),
-    env: { ...process.env, ...keys, DRY_RUN: "true" },
-    timeout: 150_000,
-    maxBuffer: 64 * 1024 * 1024,
+  return { rpc, pub, testClient, kill };
+}
+
+export async function startChain() {
+  // forge's broadcast occasionally stalls waiting for receipts under load: one retry on a fresh anvil
+  const { rpc, pub, testClient, kill } = await launch().catch((e) => {
+    console.warn(`startChain retrying: ${(e as Error).message.split("\n")[0]}`);
+    return launch();
   });
-  const code = await pub.getCode({ address: contractAddress(31337, "SignalBook") });
-  if (!code || code === "0x") throw new Error("SignalBook not at the expected address; redeploy local + export");
 
   await clearChainRows();
   process.env.RELAYER_PRIVATE_KEY = keys.RELAYER_PRIVATE_KEY;
@@ -143,17 +167,22 @@ export async function startChain() {
     }
   }
 
-  /** Commits a BTC long through the API's draft → prepare → sign → confirm flow. */
-  async function commitViaApi(account: PrivateKeyAccount, userId: number, priceUnits: bigint) {
+  /** Commits a BTC signal (default: long 81500 / TP 83000 / SL 80800) through the API's draft → prepare → sign → confirm flow. */
+  async function commitViaApi(
+    account: PrivateKeyAccount,
+    userId: number,
+    priceUnits: bigint,
+    levels: { side: "LONG" | "SHORT"; entry: string; takeProfit: string; stopLoss: string } = { side: "LONG", entry: "81500", takeProfit: "83000", stopLoss: "80800" },
+  ) {
     const asUser = { ...INTERNAL, "x-act-as-user": String(userId) };
-    const d = await postJson("/drafts", { rawText: "BTC long", parser: "manual" }, asUser);
+    const d = await postJson("/drafts", { rawText: `BTC ${levels.side.toLowerCase()}`, parser: "manual" }, asUser);
     const block = await pub.getBlock();
     const signal = {
       market: "BTC/USD",
-      side: "LONG",
-      entry: toPrice("81500").toString(),
-      takeProfit: toPrice("83000").toString(),
-      stopLoss: toPrice("80800").toString(),
+      side: levels.side,
+      entry: toPrice(levels.entry).toString(),
+      takeProfit: toPrice(levels.takeProfit).toString(),
+      stopLoss: toPrice(levels.stopLoss).toString(),
       validUntil: String(Math.max(Number(block.timestamp), Math.floor(Date.now() / 1000)) + 3600),
       pricePerSub: priceUnits.toString(),
       upstream: [],
@@ -180,8 +209,7 @@ export async function startChain() {
   }
 
   function stop() {
-    if (anvil.pid && process.platform === "win32") spawnSync("taskkill", ["/F", "/T", "/PID", String(anvil.pid)]);
-    else anvil.kill();
+    kill();
   }
 
   return { rpc, pub, testClient, wallet, usdt, fund, mint, transfer, registerProvider, commitViaApi, stop };

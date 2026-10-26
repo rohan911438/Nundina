@@ -150,7 +150,10 @@ export const draftRoutes = new Hono<AppEnv>()
       functionName: "nonces",
       args: [providerAddr],
     });
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + AUTH_DEADLINE_S);
+    // SignalBook checks the deadline against block time, which can run ahead of this server's clock
+    const block = await publicClient().getBlock().catch(() => null);
+    const nowS = Math.max(Math.floor(Date.now() / 1000), Number(block?.timestamp ?? 0));
+    const deadline = BigInt(nowS + AUTH_DEADLINE_S);
 
     const { salt: _omit, ...withoutSalt } = serializeSignal(signal);
     await db()
