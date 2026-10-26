@@ -256,6 +256,35 @@ export const mockPriceAdapterAbi = [
   },
   {
     "type": "function",
+    "name": "roundAt",
+    "inputs": [
+      {
+        "name": "market",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "i",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "price8",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ts",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "roundCount",
     "inputs": [
       {

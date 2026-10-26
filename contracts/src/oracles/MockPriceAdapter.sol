@@ -56,6 +56,12 @@ contract MockPriceAdapter is IPriceAdapter, ITouchVerifier, AccessControl {
         return _rounds[market].length;
     }
 
+    /// @notice Round `i` of a market (lets the keeper find the round id hint for an expiry).
+    function roundAt(bytes32 market, uint256 i) external view returns (uint256 price8, uint64 ts) {
+        Round memory r = _rounds[market][i];
+        return (r.price8, r.ts);
+    }
+
     /// @inheritdoc IPriceAdapter
     function spotPrice(bytes32 market) external view returns (uint256, uint64) {
         Round[] storage r = _rounds[market];
