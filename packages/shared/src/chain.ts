@@ -12,7 +12,7 @@ export const hashkeyMainnet = defineChain({
     default: { http: [process.env.HSK_RPC_URL ?? "https://mainnet.hsk.xyz"] },
   },
   blockExplorers: {
-    default: { name: "Blockscout", url: "https://hashkey.blockscout.com" },
+    default: { name: "Blockscout", url: "https://hsk.blockscout.com" },
   },
 });
 

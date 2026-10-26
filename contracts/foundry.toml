@@ -26,7 +26,7 @@ hashkey = "${HSK_RPC_URL}"
 hashkey_testnet = "${HSK_TESTNET_RPC_URL}"
 
 [etherscan]
-hashkey = { key = "${BLOCKSCOUT_API_KEY}", chain = 177, url = "https://hashkey.blockscout.com/api" }
+hashkey = { key = "${BLOCKSCOUT_API_KEY}", chain = 177, url = "https://hsk.blockscout.com/api" }
 hashkey_testnet = { key = "${BLOCKSCOUT_API_KEY}", chain = 133, url = "https://testnet-explorer.hsk.xyz/api" }
 
 [lint]

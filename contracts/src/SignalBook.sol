@@ -273,7 +273,12 @@ contract SignalBook is ISignalBook, AccessControl, Pausable, EIP712 {
 
         uint256 ref = r.oraclePriceAtCommit;
         uint256 diff = s.entry > ref ? s.entry - ref : ref - s.entry;
-        bool limit = diff * 10_000 > ref * limitThresholdBps;
+        // Limit if the entry is far from the market, or if TP/SL do not bracket the market price
+        // (otherwise a level could already be "touched" at commit time).
+        bool brackets = s.side == SignalLib.LONG
+            ? (s.stopLoss < ref && ref < s.takeProfit)
+            : (s.takeProfit < ref && ref < s.stopLoss);
+        bool limit = diff * 10_000 > ref * limitThresholdBps || !brackets;
 
         r.isLimit = limit;
         r.status = Status.REVEALED;

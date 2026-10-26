@@ -62,4 +62,5 @@ interface ISignalBook {
     function hashSignal(SignalLib.Signal calldata s) external view returns (bytes32);
     function revealFor(uint256 id, SignalLib.Signal calldata s) external;
     function nextId() external view returns (uint256);
+    function isLimit(uint256 id) external view returns (bool);
 }
