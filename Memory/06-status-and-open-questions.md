@@ -27,3 +27,4 @@
 | Q7 | HSKSwap router address and ABI | HashKey docs | Auto-execution (stretch) |
 | Q8 | Has anyone at this hackathon built "signal + escrow"? | DoraHacks gallery | Pitch differentiation |
 | Q9 | Legal wording for India (SEBI finfluencer rules) | Post-hackathon legal input | Long-term only |
+| Q10 | Providers "keep posting in their channel": if that channel is public, the plaintext is public before anyone buys. Should the bot delete the raw post after locking (needs the delete right), or do providers post in a private staging channel? | Product decision | Paid signals from public channels |

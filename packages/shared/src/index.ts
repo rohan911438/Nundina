@@ -7,3 +7,4 @@ export * from "./signal.js";
 export * from "./scoring-types.js";
 export * from "./encryption.js";
 export * from "./scoring/index.js";
+export * from "./jobs.js";

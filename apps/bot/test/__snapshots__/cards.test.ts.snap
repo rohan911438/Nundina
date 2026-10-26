@@ -1,0 +1,168 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`cards > draft 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "Confirm & lock",
+        "web_app": {
+          "url": "https://app.test/tg/confirm/12",
+        },
+      },
+    ],
+    [
+      {
+        "text": "Edit",
+        "web_app": {
+          "url": "https://app.test/tg/confirm/12?edit=1",
+        },
+      },
+      {
+        "callback_data": "ignore:12",
+        "text": "Ignore",
+      },
+    ],
+  ],
+  "text": "📝 <b>New signal from Alpha &lt;Calls&gt;</b>
+<b>BTC/USD · LONG</b>
+Entry 81350 · TP 84000 · SL 80200
+R:R 2.30 · expires in 24h
+• entry range 81200–81500 → midpoint 81350
+• 2 targets: the first (84000) is the take profit
+
+Nothing is locked until you confirm. Once locked it can't be edited or deleted.",
+}
+`;
+
+exports[`cards > locked (paid and free) 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "Buy",
+        "url": "https://t.me/nundina_test_bot?start=buy_42",
+      },
+      {
+        "text": "Proof",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "🔒 <b>Locked on HashKey</b> · BTC/USD · expires 24h · price 0.50 USDT · refund if wrong",
+}
+`;
+
+exports[`cards > results > expiry loss 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "View signal",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "❌ <b>BTC LONG closed at expiry</b> · −0.4R · Subscribers refunded + 0.50 USDT each from bond
+<a href="https://testnet-explorer.hsk.xyz/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">Proof</a> · <a href="https://testnet-explorer.hsk.xyz/tx/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee">Settlement</a>",
+}
+`;
+
+exports[`cards > results > loss 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "View signal",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "❌ <b>BTC LONG hit SL</b> · −1.0R · Subscribers refunded + 0.50 USDT each from bond
+<a href="https://testnet-explorer.hsk.xyz/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">Proof</a> · <a href="https://testnet-explorer.hsk.xyz/tx/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee">Settlement</a>",
+}
+`;
+
+exports[`cards > results > unrevealed 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "View signal",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "❌ <b>BTC was never revealed</b> · counts as −1R · Subscribers refunded + 0.50 USDT each from bond
+<a href="https://testnet-explorer.hsk.xyz/tx/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee">Settlement</a>",
+}
+`;
+
+exports[`cards > results > void 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "View signal",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "⚪ <b>BTC LONG voided</b> · no reliable price · everyone refunded
+<a href="https://testnet-explorer.hsk.xyz/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">Proof</a> · <a href="https://testnet-explorer.hsk.xyz/tx/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee">Settlement</a>",
+}
+`;
+
+exports[`cards > results > win 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "View signal",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "✅ <b>BTC LONG hit TP</b> · +1.9R · committed 14:02 UTC, before the move · Provider paid
+<a href="https://testnet-explorer.hsk.xyz/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">Proof</a> · <a href="https://testnet-explorer.hsk.xyz/tx/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee">Settlement</a>",
+}
+`;
+
+exports[`cards > unlocked and buy 1`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "Open",
+        "web_app": {
+          "url": "https://app.test/tg/my?signal=42",
+        },
+      },
+    ],
+  ],
+  "text": "🔓 <b>Your signal is unlocked</b>
+BTC/USD: open the app to read it. Keys never travel in chat.",
+}
+`;
+
+exports[`cards > unlocked and buy 2`] = `
+{
+  "buttons": [
+    [
+      {
+        "text": "Buy",
+        "web_app": {
+          "url": "https://app.test/tg/buy/42",
+        },
+      },
+      {
+        "text": "Proof",
+        "url": "https://app.test/signal/42",
+      },
+    ],
+  ],
+  "text": "🔒 <b>BTC/USD</b> by Alpha &lt;Calls&gt;
+Price 0.50 USDT · expires in 24h
+If it's wrong you're refunded plus part of the provider's bond.",
+}
+`;

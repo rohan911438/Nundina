@@ -1,17 +1,10 @@
 import { PgBoss } from "pg-boss";
+import { JOBS, type JobName } from "@nundina/shared";
 import { env } from "../env.js";
 import { log } from "../lib/log.js";
 
-/** Queue names shared with bot / keeper / agents. */
-export const JOBS = {
-  notifyLocked: "notify.locked",
-  notifyResult: "notify.result",
-  notifyKeyDelivered: "notify.keyDelivered",
-  hspVerify: "hsp.verify",
-  reveal: "signal.reveal",
-  score: "score.recompute",
-} as const;
-export type JobName = (typeof JOBS)[keyof typeof JOBS];
+/** Queue names live in @nundina/shared so the bot and indexer use the same ones. */
+export { JOBS, type JobName };
 
 let boss: PgBoss | undefined;
 let starting: Promise<PgBoss> | undefined;

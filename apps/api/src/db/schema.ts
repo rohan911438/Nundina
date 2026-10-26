@@ -144,6 +144,8 @@ export const signals = pgTable(
     purchaseCount: integer("purchase_count").notNull().default(0),
     tgChatId: bigint("tg_chat_id", { mode: "number" }),
     tgMessageId: bigint("tg_message_id", { mode: "number" }),
+    /** The bot's locked card, posted as a reply to the source post; result cards reply to it. */
+    tgCardMessageId: bigint("tg_card_message_id", { mode: "number" }),
     /** chain | seed */
     source: text("source").notNull().default("chain"),
     createdAt: createdAt(),
@@ -410,3 +412,10 @@ export const indexerCursor = pgTable("indexer_cursor", {
 });
 
 export const now = sql`now()`;
+
+/** grammY session storage (one row per chat/user key). */
+export const botSessions = pgTable("bot_sessions", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: updatedAt(),
+});
