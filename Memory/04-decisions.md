@@ -1,0 +1,29 @@
+# 4. Decisions log
+
+Each entry: the decision, why, and what we turned down. Newest at the bottom.
+
+| # | Decision | Why | Alternatives rejected |
+|---|---|---|---|
+| D1 | Compete in **Track 2** with an A2A *settlement* product, not a payment button | Track name is "A2A Settlement"; past HashKey winners were all single-agent payments | Payroll, invoicing, NL payment bots |
+| D2 | Start from **humans who already pay** and add agents as the mechanism | Real agentic demand is tiny; judges want traction | AgentCCP, agent credit (no users today) |
+| D3 | Product = **Nundina**, pay-if-right trading signals | Existing paying market, clear scam pain, India story, perfect fit for conditional settlement | SafeSkills, AI-API gateway |
+| D4 | **Commit-reveal** with automatic loss if unrevealed | Kills deleting losers and posting both sides | Plain timestamping (allows selective reveal) |
+| D5 | **Provider bond, slash ≥ price** | Makes coin-flip posting negative expected value | Reputation only (cheap to fake with new accounts) |
+| D6 | Score by **Wilson lower bound, expectancy in R, alpha vs BTC, min 30 signals** | Separates skill from luck and geometry farming | Raw win rate |
+| D7 | **APRO push for expiry, Supra pull for touches**, with a challenge window | APRO too coarse for touches; both live on HashKey | Chainlink Data Streams (gated), our own oracle |
+| D8 | **Two payment paths**: HSP evm-transfer (USDT/USDC.e) and EIP-3009 fast path (USDC.e) | USDT has the users; USDC.e enables gasless x402 | USDT only (no x402) |
+| D9 | Escrow credits only on **verified HSP Receipt**, and `credited ≤ balance` | Never trust the Coordinator's word; never over-credit | Credit on transfer event alone |
+| D10 | **Deploy ERC-8004** registries to HashKey | Portable reputation and a credible ecosystem first | Custom registry |
+| D11 | **AES-256-GCM + ECIES** for signal privacy, with a key service | Uses wallet keys, no extra network, simple | Lit Protocol / TEE (v2) |
+| D12 | **Telegram first**, plus web and MCP | Providers and subscribers already live in Telegram; multi-client avoids the Kaito failure | Web-only app |
+| D13 | **Free first**: shadow leaderboard → free verification → probation → pay-if-works | Nobody pays a platform with no history | Charge from day one |
+| D14 | Run **our own 3 strategy agents** | Marketplace is never empty; powers the A2A demo | Wait for providers |
+| D15 | **All-TypeScript** off-chain, pnpm monorepo, Foundry for contracts | One language; HSP SDK is TS; shared EIP-712 types | Python agents, Hardhat |
+| D16 | Cornix rule parser + **Claude Haiku** fallback + human confirm | Deterministic and free for most posts; LLM only for messy ones | LLM-only, regex-only |
+| D17 | 10% fee **on winning payments only** | We earn only when the user gets value | Subscriptions, provider fees |
+| D18 | If HSP credentials are late (after Oct 27), **mock receipts behind an interface** | Don't block the whole build on organizers | Waiting |
+| D20 | (Oct 26) **Resolution reveals**: touch/expiry calls carry the plaintext signal | TP/SL are secret until reveal, so the resolver can't check a touch without them | Separate reveal before resolving (adds a step that can fail) |
+| D21 | (Oct 26) Escrow credits are authorised by our **credit signer** after local `HSPVerifier` ACCEPT, behind an `ICreditVerifier` interface | HSP receipt format is pre-1.0 and not public; on-chain receipt check can replace it later | Verifying HSP adapter signatures on-chain now |
+| D22 | (Oct 26) Buyers use a **dedicated encryption keypair** derived from a wallet signature, not the wallet key | Wallets don't expose private keys for ECIES; derivation is re-doable by signing again | Wallet key directly |
+| D23 | (Oct 26) Add `VOID` outcome (limit signal never triggered) and `recoverUncredited` (return a transfer that reached escrow but failed HSP verification, to the original payer only) | No unfair slashes, no stuck funds | Treating untriggered limits as losses |
+| D19 | (Oct 26) **13 web pages** in total, of which **7 are MVP**; Telegram Mini App with 4 screens | Ship the demo path first. See `Architecture/02-frontend-pages.md` | Building every page before the demo |
