@@ -1,13 +1,18 @@
 import { env } from "../env.js";
+import { HspGatewayRail } from "./HspGatewayRail.js";
 import { HspRail } from "./HspRail.js";
 import { MockRail } from "./MockRail.js";
 import type { PaymentRail } from "./PaymentRail.js";
 
 let rail: PaymentRail | undefined;
 
-/** The active rail: HSP_MODE=mock (default) or live. */
+/**
+ * The active rail: HSP_MODE=mock (default) or live. Live uses the HashKey Merchant gateway when its
+ * app credentials are set, else the older Coordinator rail (HSP_COORDINATOR_URL).
+ */
 export function paymentRail(): PaymentRail {
-  rail ??= env().HSP_MODE === "live" ? HspRail.fromEnv() : new MockRail();
+  const e = env();
+  rail ??= e.HSP_MODE !== "live" ? new MockRail() : e.HSP_MERCHANT_APP_KEY ? HspGatewayRail.fromEnv() : HspRail.fromEnv();
   return rail;
 }
 
@@ -23,3 +28,4 @@ export async function initPaymentRail() {
 }
 
 export * from "./PaymentRail.js";
+export { HspGatewayRail } from "./HspGatewayRail.js";

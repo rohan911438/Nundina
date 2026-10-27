@@ -40,6 +40,12 @@ const EnvSchema = z.object({
   HSP_CHAIN: optional,
   HSP_ADAPTER_ADDRESS: optional,
   HSP_FACILITATOR_URL: optional,
+  /** HashKey Merchant gateway (HSP): docs/HSP-ONBOARDING.md */
+  HSP_MERCHANT_BASE_URL: z.string().default("https://merchant-qa.hashkeymerchant.com"),
+  HSP_MERCHANT_PRIVATE_KEY_PATH: z.string().default("secrets/hsp_merchant_private_key.pem"),
+  HSP_MERCHANT_APP_KEY: optional,
+  HSP_MERCHANT_APP_SECRET: optional,
+  HSP_MERCHANT_NAME: z.string().default("Nundina"),
   /** Base URL of the HSP explorer (defaults to <coordinator>/explorer). */
   HSP_EXPLORER_URL: optional,
   /** Mock rail adapter key (signs receipts); defaults to a key derived from INTERNAL_SECRET. */

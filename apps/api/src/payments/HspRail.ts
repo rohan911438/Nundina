@@ -119,16 +119,18 @@ export class HspRail implements PaymentRail {
     return { intentId: id, mandateTypedData: td, payee, reference: td.message.reference };
   }
 
-  async submit(p: { intentId: string; mandateSig: Hex; txHash: Hex }) {
+  async submit(p: { intentId: string; mandateSig?: Hex; txHash: Hex }) {
+    if (!p.mandateSig) throw badRequest("bad_mandate_sig", "mandateSig required");
+    const mandateSig = p.mandateSig;
     const row = await db().query.railPayments.findFirst({ where: eq(railPayments.id, p.intentId) });
     if (!row) throw notFound("Payment intent");
     const td = row.mandateJson as MandateTypedData;
-    if (!(await checkMandateSig(td, p.mandateSig))) throw badRequest("bad_mandate_sig", "Mandate not signed by the payer");
+    if (!(await checkMandateSig(td, mandateSig))) throw badRequest("bad_mandate_sig", "Mandate not signed by the payer");
 
     if (row.status === "CREATED") {
       const reg = await this.call<{ paymentId?: string; id?: string }>("POST", "/payments", {
         mandate: td,
-        signature: p.mandateSig,
+        signature: mandateSig,
         attestations: [],
       });
       if (reg.status >= 400 && reg.status !== 409) {
@@ -143,7 +145,7 @@ export class HspRail implements PaymentRail {
     if (obs.status >= 400) throw new ApiError(422, "hsp_observe_failed", `Coordinator refused observe (${obs.status})`);
     await db()
       .update(railPayments)
-      .set({ mandateSig: p.mandateSig, txHash: p.txHash.toLowerCase(), status: "SUBMITTED", updatedAt: new Date() })
+      .set({ mandateSig, txHash: p.txHash.toLowerCase(), status: "SUBMITTED", updatedAt: new Date() })
       .where(eq(railPayments.id, row.id));
     return { paymentId: row.id };
   }

@@ -20,14 +20,14 @@ import { decryptPurchase, KEYED_STATUSES, useMyPurchase, type UnlockedSignal } f
 import { useWallet, walletErrorMessage } from "@/lib/wallet/useWallet";
 import { WalletGate } from "./WalletGate";
 
-type Stage = "idle" | "signing" | "transfer" | "verifying" | "credited" | "unlocking" | "done" | "error";
+type Stage = "idle" | "signing" | "checkout" | "transfer" | "verifying" | "credited" | "unlocking" | "done" | "error";
 const STAGES: { key: Stage; label: string }[] = [
   { key: "transfer", label: "Paid" },
   { key: "verifying", label: "Verified by HSP" },
   { key: "credited", label: "Credited to escrow" },
   { key: "done", label: "Unlocked" },
 ];
-const STAGE_RANK: Record<Stage, number> = { idle: -1, signing: -1, transfer: 0, verifying: 1, credited: 2, unlocking: 2, done: 3, error: -1 };
+const STAGE_RANK: Record<Stage, number> = { idle: -1, signing: -1, checkout: -1, transfer: 0, verifying: 1, credited: 2, unlocking: 2, done: 3, error: -1 };
 
 /** Human copy for API and wallet failures (spec: network, balance, rejected, capacity, HSP POLICY). */
 function buyError(e: unknown): string {
@@ -57,6 +57,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [purchaseId, setPurchaseId] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState<UnlockedSignal | null>(null);
 
   const price6 = BigInt(Math.round(Number(signal.priceUsd) * 1e6));
@@ -82,12 +83,13 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
   const capacity = cap.data ?? null;
   const enough = balances[token] == null || balances[token]! >= price6;
 
-  // Poll the purchase until the key is delivered (or it is rejected).
+  // Poll the purchase until the key is delivered (or it is rejected). Gateway checkouts poll through
+  // /sync, which also asks HSP whether the buyer has paid yet.
   const poll = useQuery({
-    queryKey: ["purchase", purchaseId],
-    queryFn: () => purchasesApi.get(purchaseId!),
+    queryKey: ["purchase", purchaseId, Boolean(checkoutUrl)],
+    queryFn: () => (checkoutUrl ? purchasesApi.sync(purchaseId!) : purchasesApi.get(purchaseId!)),
     enabled: Boolean(purchaseId) && stage !== "done" && stage !== "error",
-    refetchInterval: 1500,
+    refetchInterval: checkoutUrl ? 3000 : 1500,
   });
   useEffect(() => {
     const p = poll.data;
@@ -130,6 +132,13 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       setStage("signing");
       const { purchaseId: id, intent } = await purchasesApi.create(signal.id, token);
       setPurchaseId(id);
+      if (intent.checkout) {
+        // HashKey Merchant gateway: the buyer authorises the transfer to escrow on HSP's checkout page
+        setCheckoutUrl(intent.checkout.paymentUrl);
+        setStage("checkout");
+        window.open(intent.checkout.paymentUrl, "_blank", "noopener");
+        return;
+      }
       if (token === "USDC_E" && fastPathEnabled && escrow) {
         const auth = await signFastPath(wagmi, {
           token: TOKENS.USDC_E.address(),
@@ -239,6 +248,15 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
         </ol>
       ) : null}
 
+      {stage === "checkout" && checkoutUrl ? (
+        <p className="text-sm text-muted" data-testid="hsp-checkout">
+          Finish paying in the HSP checkout.{" "}
+          <ExternalLink href={checkoutUrl} label="HSP checkout">
+            Open checkout
+          </ExternalLink>
+        </p>
+      ) : null}
+
       {!enough ? (
         <p role="alert" className="text-sm text-loss">
           Not enough {TOKENS[token].symbol}: you need {usd(signal.priceUsd)}.
@@ -252,7 +270,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
 
       <Button size="lg" variant="accent" className="w-full" onClick={() => void buy()} disabled={paying || !enough || capacity === 0n} data-testid="pay">
         {paying ? <Loader2 aria-hidden className="animate-spin" /> : <Lock aria-hidden />}
-        {stage === "signing" ? "Confirm in wallet…" : paying ? "Processing…" : `Pay ${usd(signal.priceUsd)} ${TOKENS[token].symbol}`}
+        {stage === "signing" ? "Confirm in wallet…" : stage === "checkout" ? "Waiting for HSP checkout…" : paying ? "Processing…" : `Pay ${usd(signal.priceUsd)} ${TOKENS[token].symbol}`}
       </Button>
       <p className="text-center text-xs text-muted">Paid through HSP · the key is decrypted on this device only</p>
     </div>

@@ -15,6 +15,7 @@ import { publicSignal } from "../lib/serialize.js";
 import { revealMaterial, splitCiphertext, wrapKeyFor } from "../keys/keyService.js";
 import { paymentRail } from "../payments/index.js";
 import { explorerTxUrl } from "../payments/MockRail.js";
+import { syncGatewayPurchase } from "../payments/gatewaySync.js";
 import { enqueue, JOBS } from "../jobs/queue.js";
 import { revealSignal } from "../jobs/reveal.js";
 
@@ -83,6 +84,8 @@ function purchaseView(p: typeof purchases.$inferSelect) {
     token: p.token,
     rail: p.rail,
     paymentId: p.hspPaymentId,
+    /** HSP gateway checkout (live rail): open it to authorise the payment. */
+    paymentUrl: (p.mandateJson as { paymentUrl?: string } | null)?.paymentUrl ?? null,
     txHash: p.txHash,
     outcomeClass: p.outcomeClass,
     receiptHash: p.receiptHash,
@@ -167,7 +170,7 @@ export const purchaseRoutes = new Hono<AppEnv>()
       token: token.toLowerCase(),
       rail: paymentRail().name === "hsp" ? "hsp" : "mock",
       hspPaymentId: intent.intentId,
-      mandateJson: intent.mandateTypedData,
+      mandateJson: intent.mandateTypedData ?? intent.checkout ?? null,
       status: "PENDING",
       txHash: null,
       outcomeClass: null,
@@ -181,6 +184,11 @@ export const purchaseRoutes = new Hono<AppEnv>()
       ? await db().update(purchases).set(values).where(eq(purchases.id, existing.id)).returning()
       : await db().insert(purchases).values(values).returning();
     return c.json({ purchaseId: p!.id, status: p!.status, intent }, existing ? 200 : 201);
+  })
+  /** HSP gateway rail: poll the gateway for this purchase (the webhook does the same push-side). */
+  .post("/purchases/:id/sync", requireUser, async (c) => {
+    const p = await ownPurchase(c.req.param("id"), getAuth(c));
+    return c.json(purchaseView(await syncGatewayPurchase(p)));
   })
   .post("/purchases/:id/submit", requireUser, async (c) => {
     const idem = c.req.header("idempotency-key");

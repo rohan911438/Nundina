@@ -27,7 +27,9 @@ export function getPurchase(ctx: Ctx) {
   return (a: { purchaseId: string }) =>
     guarded(async () => {
       if (!ctx.api.apiKey) return fail("auth_required", "get_purchase needs your agent API key");
-      const p = await ctx.api.get<any>(`/purchases/${a.purchaseId}`);
+      let p = await ctx.api.get<any>(`/purchases/${a.purchaseId}`);
+      // gateway checkout: ask the API to re-read HSP so a missed webhook doesn't stall the purchase
+      if (p.status === "PENDING" && p.paymentUrl) p = await ctx.api.post<any>(`/purchases/${a.purchaseId}/sync`, {});
       return ok({
         purchaseId: p.id,
         signalId: p.signalId,
@@ -36,6 +38,7 @@ export function getPurchase(ctx: Ctx) {
         token: p.token,
         hspPaymentId: p.paymentId ?? null,
         txHash: p.txHash ?? null,
+        paymentUrl: p.status === "PENDING" ? (p.paymentUrl ?? null) : null,
         creditedTx: p.creditedTx ?? null,
         explorer: txUrl(p.creditedTx ?? p.txHash),
         keyReady: ["KEY_SENT", "SETTLED_WIN", "REFUNDED"].includes(p.status),

@@ -11,6 +11,7 @@ import type { Intent } from "@/lib/session";
  */
 export async function payIntent(wagmi: Config, intent: Intent): Promise<{ mandateSig: Hex; txHash: Hex }> {
   const td = intent.mandateTypedData;
+  if (!td) throw new Error("This payment uses the HSP checkout, not a wallet mandate");
   const m = td.message;
   const mandateSig = await signTypedData(wagmi, {
     domain: { ...td.domain, chainId: Number(td.domain.chainId) },
