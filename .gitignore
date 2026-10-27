@@ -14,3 +14,6 @@ coverage/
 contracts/broadcast/*
 !contracts/broadcast/Deploy.s.sol/
 contracts/broadcast/Deploy.s.sol/31337/
+# merchant / signing keys: never commit
+secrets/
+*.pem
