@@ -36,7 +36,7 @@ contract SmokeTest is Script {
             registry.register(agentId, provider, keccak256("@nundina_smoke"), false);
         }
         uint256 bond = 1e6;
-        if (block.chainid != 177) MockERC20(usdt).mint(provider, bond);
+        if (block.chainid == 31337) MockERC20(usdt).mint(provider, bond); // testnet uses HSP's real test USDT
         if (IERC20(usdt).balanceOf(provider) >= bond) {
             IERC20(usdt).approve(address(registry), bond);
             registry.depositBond(bond);

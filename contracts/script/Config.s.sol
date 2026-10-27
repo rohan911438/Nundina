@@ -7,9 +7,9 @@ import {Script} from "forge-std/Script.sol";
 contract Config is Script {
     struct NetConfig {
         string name;
-        bool mocks; // deploy mock tokens + MockPriceAdapter (local + testnet)
-        address usdt;
-        address usdcE;
+        bool mocks; // deploy MockPriceAdapter (local + testnet)
+        address usdt; // address(0) = deploy a mock token (local)
+        address usdcE; // address(0) = deploy a mock token (local)
         address aproBtc;
         address aproHsk;
         address supraPull;
@@ -51,8 +51,9 @@ contract Config is Script {
             c = NetConfig({
                 name: "hashkey-testnet",
                 mocks: true,
-                usdt: address(0),
-                usdcE: address(0),
+                // HSP merchant gateway testnet tokens (hashkey-merchant.github.io onboarding table)
+                usdt: 0x372325443233fEbaC1F6998aC750276468c83CC6, // Permit2
+                usdcE: 0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6, // EIP-3009
                 aproBtc: address(0),
                 aproHsk: address(0),
                 supraPull: address(0),

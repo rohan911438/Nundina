@@ -88,14 +88,9 @@ contract Deploy is Config {
         pe[0] = a.deployer;
         o.timelock = address(new TimelockController(c.timelockDelay, pe, pe, address(0)));
 
-        // tokens
-        if (c.mocks) {
-            o.usdt = address(new MockERC20("Tether USD (test)", "USDT", 6));
-            o.usdcE = address(new MockERC3009("Bridged USDC (test)", "USDC.e"));
-        } else {
-            o.usdt = c.usdt;
-            o.usdcE = c.usdcE;
-        }
+        // tokens: configured addresses (mainnet, HSP testnet tokens) or fresh mocks (local)
+        o.usdt = c.usdt != address(0) ? c.usdt : address(new MockERC20("Tether USD (test)", "USDT", 6));
+        o.usdcE = c.usdcE != address(0) ? c.usdcE : address(new MockERC3009("Bridged USDC (test)", "USDC.e"));
 
         // 2. ERC-8004 (canonical CREATE2 address not reproducible: deployed normally)
         o.identity = address(new IdentityRegistry());
