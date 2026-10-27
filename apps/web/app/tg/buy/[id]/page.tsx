@@ -11,11 +11,14 @@ import { api } from "@/lib/api";
 import { ago, pct, usd } from "@/lib/format";
 import { isBuyable } from "@/lib/signal-state";
 import { haptic, useBackButton, useMainButton, useTelegram } from "@/lib/telegram";
+import { useWallet } from "@/lib/wallet/useWallet";
 
 export default function TgBuy() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const tg = useTelegram();
+  // the Buy flow shows its own price card once the wallet is ready; before that, this one
+  const ready = useWallet().step === "ready";
   const [done, setDone] = useState(false);
   const signal = useQuery({ queryKey: ["signal", id], queryFn: () => api.signal(id) });
   const provider = useQuery({
@@ -49,7 +52,7 @@ export default function TgBuy() {
         </div>
       ) : (
         <>
-          <Summary priceUsd={s.priceUsd} validUntil={s.validUntil} buyers={s.purchaseCount} provider={provider.data ?? null} handle={s.provider?.handle} />
+          {ready ? null : <Summary priceUsd={s.priceUsd} validUntil={s.validUntil} buyers={s.purchaseCount} provider={provider.data ?? null} handle={s.provider?.handle} />}
           <BuyFlow signal={s} provider={provider.data ?? null} onDone={() => (haptic.success(), setDone(true))} />
         </>
       )}

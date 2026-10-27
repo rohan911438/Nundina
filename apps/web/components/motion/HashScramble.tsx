@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 
+const DIGITS = "0123456789";
 const HEX = "0123456789abcdef";
-const rand = (n: number) => Array.from({ length: n }, () => HEX[Math.floor(Math.random() * 16)]).join("");
+const pick = (set: string) => set[Math.floor(Math.random() * set.length)]!;
+// digits roll as digits, hex letters as hex; punctuation ($ , . x …) stays put so the shape holds
+const roll = (c: string) => (/\d/.test(c) ? pick(DIGITS) : /[a-f]/i.test(c) ? pick(HEX) : c);
 
 /**
- * A commit hash that keeps re-rolling, settling left to right on `final`. Decorative: hidden from
- * screen readers, and static under reduced motion.
+ * Text that "decrypts": its characters keep re-rolling and settle left to right on `final`.
+ * Decorative: hidden from screen readers (pair it with an sr-only copy), static under reduced motion.
  */
-export function HashScramble({ final, className }: { final: string; className?: string }) {
+export function Scramble({ final, className, step = 45 }: { final: string; className?: string; step?: number }) {
   const [text, setText] = useState(final);
 
   useEffect(() => {
@@ -18,12 +21,12 @@ export function HashScramble({ final, className }: { final: string; className?: 
     let frame = 0;
     const id = setInterval(() => {
       frame++;
-      if (frame % 3 === 0 && locked < final.length) locked++;
-      setText(final.slice(0, locked) + rand(final.length - locked));
+      if (frame % 3 === 0) locked++;
+      setText(final.slice(0, locked) + [...final.slice(locked)].map(roll).join(""));
       if (locked >= final.length) clearInterval(id);
-    }, 45);
+    }, step);
     return () => clearInterval(id);
-  }, [final]);
+  }, [final, step]);
 
   return (
     <span aria-hidden className={className}>
@@ -31,3 +34,6 @@ export function HashScramble({ final, className }: { final: string; className?: 
     </span>
   );
 }
+
+/** A commit hash settling into place. */
+export const HashScramble = Scramble;

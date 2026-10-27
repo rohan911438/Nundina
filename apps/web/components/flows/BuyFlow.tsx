@@ -19,6 +19,7 @@ import { purchasesApi, type PurchaseView } from "@/lib/session";
 import { decryptPurchase, KEYED_STATUSES, useMyPurchase, type UnlockedSignal } from "@/lib/unlock";
 import { useWallet, walletErrorMessage } from "@/lib/wallet/useWallet";
 import { WalletGate } from "./WalletGate";
+import { Scramble } from "@/components/motion/HashScramble";
 
 type Stage = "idle" | "signing" | "checkout" | "transfer" | "verifying" | "credited" | "unlocking" | "done" | "error";
 const STAGES: { key: Stage; label: string }[] = [
@@ -228,7 +229,10 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       </fieldset>
 
       {paying ? (
-        <ol className="space-y-2 rounded-2xl border border-border p-4 text-sm" aria-live="polite" data-testid="buy-progress">
+        <ol className="rise space-y-2 rounded-2xl border border-border p-4 text-sm" aria-live="polite" data-testid="buy-progress">
+          <li aria-hidden className="mb-3 h-1 overflow-hidden rounded-full bg-surface-2">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-700 ease-[var(--ease-out)]" style={{ width: `${Math.max(6, ((STAGE_RANK[stage] + 1) / STAGES.length) * 100)}%` }} />
+          </li>
           {STAGES.map((s) => {
             const done = STAGE_RANK[stage] >= STAGE_RANK[s.key];
             const active = STAGE_RANK[stage] + 1 === STAGE_RANK[s.key];
@@ -283,7 +287,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
 
 export function UnlockedCard({ s, purchase }: { s: UnlockedSignal; purchase: PurchaseView | null }) {
   return (
-    <div className="rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="unlocked">
+    <div className="rise rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="unlocked">
       <p className="flex items-center gap-2 text-sm text-win">
         <Check aria-hidden className="size-4" /> Unlocked on this device
       </p>
@@ -300,7 +304,10 @@ export function UnlockedCard({ s, purchase }: { s: UnlockedSignal; purchase: Pur
         ).map(([k, v, t]) => (
           <div key={k}>
             <dt className="text-xs text-muted">{k}</dt>
-            <dd className={cn("num mt-0.5 text-lg font-medium", t)}>{price(v, s.market)}</dd>
+            <dd className={cn("num mt-0.5 text-lg font-medium", t)}>
+              <span className="sr-only">{price(v, s.market)}</span>
+              <Scramble final={price(v, s.market)} />
+            </dd>
           </div>
         ))}
       </dl>
