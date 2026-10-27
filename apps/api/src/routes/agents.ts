@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, sql as dsql } from "drizzle-orm";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { z } from "zod";
@@ -9,7 +9,7 @@ import { agentActions, agents, providers, type AgentPolicy } from "../db/schema.
 import { getAuth, requireInternal, requireUser, type AppEnv, type Auth } from "../auth/context.js";
 import { createApiKey } from "../auth/apiKey.js";
 import { seal, unseal } from "../keys/masterKey.js";
-import { badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
+import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
 import { userIdForWallet } from "../auth/siwe.js";
 
 const strip = (h: string) => (h.startsWith("0x") ? h.slice(2) : h);
@@ -36,7 +36,7 @@ const ActivityBody = z.object({
 
 const RegisterBody = z.object({
   name: z.string().min(1).max(60),
-  type: z.enum(["strategy", "aggregator", "execution"]),
+  type: z.enum(["strategy", "aggregator", "execution", "mcp"]),
   /** Defaults to the user that owns `wallet` (created if new): our agents are their own users. */
   ownerUserId: z.number().int().positive().optional(),
   wallet: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
@@ -51,6 +51,8 @@ const RegisterBody = z.object({
     })
     .optional(),
 });
+
+const UnitsBody = z.object({ amount: z.string().regex(/^\d+$/), reason: z.string().max(200).optional() });
 
 function toPolicy(b: z.infer<typeof PolicyBody>, prev: AgentPolicy = {}): AgentPolicy {
   const { dailyBudgetUsd, maxPerSignalUsd, ...rest } = b;
@@ -270,6 +272,54 @@ export const agentRoutes = new Hono<AppEnv>()
       .where(eq(agents.id, ag.id))
       .returning();
     return c.json(agentView(u!));
+  })
+  /**
+   * An API key for an external (MCP) agent acting for the signed-in user: it pays from the user's
+   * own wallet (delegated mandates) and decrypts with the user's encryption key. Shown once.
+   */
+  .post("/me/api-keys", requireUser, async (c) => {
+    const a = getAuth(c);
+    if (a.agentId || a.kind === "apikey") throw forbidden("API keys cannot create API keys");
+    if (!a.wallet) throw badRequest("wallet_required", "Link a wallet first");
+    const body = z.object({ name: z.string().min(1).max(60).default("MCP agent") }).safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", body.error.issues.map((i) => i.message).join("; "));
+    const [ag] = await db().insert(agents).values({ ownerUserId: a.userId, name: body.data.name, type: "mcp", wallet: a.wallet.toLowerCase() }).returning();
+    const apiKey = await createApiKey({ ownerUserId: a.userId, agentId: ag!.id, label: `mcp:${ag!.id}` });
+    return c.json({ agent: agentView(ag!), apiKey }, 201);
+  })
+  /** Prepaid credit of the calling agent (API key). */
+  .get("/me/credits", requireUser, async (c) => {
+    const a = getAuth(c);
+    if (!a.agentId) throw badRequest("agent_key_required", "Use an agent API key");
+    const ag = await db().query.agents.findFirst({ where: eq(agents.id, a.agentId) });
+    return c.json({ agentId: a.agentId, credits: ag?.credits ?? "0", creditsUsd: fromUnits(BigInt(ag?.credits ?? "0")) });
+  })
+  /** Spends the caller's own credit (paid MCP tools); 402 when it doesn't cover the amount. */
+  .post("/me/credits/debit", requireUser, async (c) => {
+    const a = getAuth(c);
+    if (!a.agentId) throw badRequest("agent_key_required", "Use an agent API key");
+    const body = UnitsBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", "amount (6-dec units) required");
+    const amt = body.data.amount;
+    const [u] = await db()
+      .update(agents)
+      .set({ credits: dsql`${agents.credits} - ${amt}::numeric` })
+      .where(and(eq(agents.id, a.agentId), gte(agents.credits, amt)))
+      .returning({ credits: agents.credits });
+    if (!u) throw new ApiError(402, "insufficient_credits", "Prepaid credit does not cover this call");
+    return c.json({ credits: u.credits, creditsUsd: fromUnits(BigInt(u.credits)) });
+  })
+  /** Credit top-up (after an off-chain or HSP payment is confirmed). */
+  .post("/internal/agents/:id/credits", requireInternal, async (c) => {
+    const ag = await ownAgent(c.req.param("id"), getAuth(c));
+    const body = UnitsBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", "amount (6-dec units) required");
+    const [u] = await db()
+      .update(agents)
+      .set({ credits: dsql`${agents.credits} + ${body.data.amount}::numeric` })
+      .where(eq(agents.id, ag.id))
+      .returning({ credits: agents.credits });
+    return c.json({ credits: u!.credits, creditsUsd: fromUnits(BigInt(u!.credits)) });
   })
   .get("/internal/agents", requireInternal, async (c) => {
     const type = c.req.query("type") ?? "execution";

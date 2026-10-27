@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "credits" numeric(38, 0) DEFAULT '0' NOT NULL;

@@ -271,6 +271,8 @@ export const agents = pgTable("agents", {
   paused: boolean("paused").notNull().default(false),
   spentToday: units("spent_today").notNull().default("0"),
   spentDay: date("spent_day"),
+  /** Prepaid credit for paid MCP data tools (6-dec units). */
+  credits: units("credits").notNull().default("0"),
   createdAt: createdAt(),
 });
 
