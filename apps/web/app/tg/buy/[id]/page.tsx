@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { BuyFlow } from "@/components/flows/BuyFlow";
+import Link from "next/link";
 import { api } from "@/lib/api";
+import { isBuyable } from "@/lib/signal-state";
 import { useBackButton, useMainButton, useTelegram } from "@/lib/telegram";
 
 export default function TgBuy() {
@@ -29,8 +31,18 @@ export default function TgBuy() {
       <h1 className="text-xl font-semibold">
         {s.market} signal <span className="text-muted">#{s.id}</span>
       </h1>
-      {s.outcome || s.revealed ? (
-        <p className="text-sm text-muted">This signal is closed. Its levels and result are public on the signal page.</p>
+      {!isBuyable(s) ? (
+        <div className="rise rounded-2xl border border-border bg-surface p-5 text-sm">
+          <p className="font-medium">Sales closed</p>
+          <p className="mt-1 text-muted">
+            {s.outcome || s.revealed
+              ? "Its levels and result are public now."
+              : "It expired before you bought it. The oracle is checking the result; nobody can buy it any more."}
+          </p>
+          <Link href="/tg/my" className="mt-3 inline-block text-accent">
+            My signals →
+          </Link>
+        </div>
       ) : (
         <BuyFlow signal={s} provider={provider.data ?? null} onDone={() => setDone(true)} />
       )}

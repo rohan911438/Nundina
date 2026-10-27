@@ -12,7 +12,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, isNotFound } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { hhmm, r, usd, utc } from "@/lib/format";
-import { signalState, type SignalState } from "@/lib/signal-state";
+import { isBuyable, signalState, type SignalState } from "@/lib/signal-state";
 
 export const revalidate = 15;
 
@@ -56,7 +56,7 @@ export default async function SignalPage({ params }: Props) {
   const now = Date.now();
   const live = st === "locked" || st === "live";
   // the escrow refuses purchases after validUntil; the keeper settles shortly after
-  const buyable = live && new Date(s.validUntil).getTime() > now;
+  const buyable = isBuyable(s, now);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-14" data-state={st}>

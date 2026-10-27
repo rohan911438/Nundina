@@ -59,7 +59,7 @@ export function LeaderboardTable({ providers, filters }: { providers: ApiProvide
           </thead>
           <tbody>
             {ranked.map((p, i) => (
-              <Row key={p.handle} p={p} rank={i + 1} />
+              <Row key={p.handle} p={p} rank={i + 1} i={i} />
             ))}
             {probation.length ? (
               <tr>
@@ -68,8 +68,8 @@ export function LeaderboardTable({ providers, filters }: { providers: ApiProvide
                 </th>
               </tr>
             ) : null}
-            {probation.map((p) => (
-              <Row key={p.handle} p={p} />
+            {probation.map((p, j) => (
+              <Row key={p.handle} p={p} i={ranked.length + j} />
             ))}
           </tbody>
         </table>
@@ -110,10 +110,14 @@ function Name({ p }: { p: ApiProvider }) {
   );
 }
 
-function Row({ p, rank }: { p: ApiProvider; rank?: number }) {
+function Row({ p, rank, i = 0 }: { p: ApiProvider; rank?: number; i?: number }) {
   const s = p.score;
   return (
-    <tr data-testid="leaderboard-row" className={cn("border-b border-border/60 last:border-0 hover:bg-surface-2/50", !rank && "text-muted")}>
+    <tr
+      data-testid="leaderboard-row"
+      style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
+      className={cn("rise border-b border-border/60 transition-colors last:border-0 hover:bg-surface-2/50", !rank && "text-muted")}
+    >
       <td className="num py-3 pl-5 text-muted">{rank ?? "—"}</td>
       <td className="py-3">
         <div className="flex items-center gap-3">

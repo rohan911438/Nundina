@@ -28,4 +28,9 @@ export const STATE_LABEL: Record<SignalState, string> = {
   refunded: "Refunded",
 };
 
+/** Open for purchase: live on-chain and not past `validUntil` (the escrow refuses later payments). */
+export function isBuyable(s: Pick<ApiSignal, "status" | "validUntil">, now = Date.now()) {
+  return LIVE.has(s.status) && new Date(s.validUntil).getTime() > now;
+}
+
 export const isSettled = (st: SignalState) => st === "win" || st === "loss" || st === "unrevealed" || st === "void" || st === "refunded";

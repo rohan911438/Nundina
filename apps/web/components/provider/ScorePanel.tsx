@@ -1,13 +1,14 @@
 import type { ApiScore } from "@nundina/shared";
 import { Stat } from "@/components/ui/card";
 import { pct, pp, r, tone } from "@/lib/format";
+import { ScoreRing } from "./ScoreRing";
 
 export function ScorePanel({ s }: { s: ApiScore }) {
   return (
     <div className="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
-      <div className="flex items-baseline gap-3 sm:flex-col sm:items-start sm:gap-1 sm:border-r sm:border-border sm:pr-8">
+      <div className="flex items-baseline gap-3 sm:flex-col sm:items-center sm:gap-2 sm:border-r sm:border-border sm:pr-8">
         <span className="text-xs text-muted">Score</span>
-        <span className="num text-6xl font-medium leading-none tracking-tight">{s.score == null ? "—" : s.score.toFixed(0)}</span>
+        <ScoreRing score={s.score} />
         <span className="text-xs text-muted">{s.probation ? `Probation · ${30 - s.n} more to rank` : "out of 100 · all time"}</span>
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">

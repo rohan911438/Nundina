@@ -264,6 +264,17 @@
   animation: pulse-ring 1.8s var(--ease-out) infinite;
 }
 
+/* page transition (app/template.tsx). "backwards" so no transform lingers to trap fixed children */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.page-in {
+  animation: page-in 0.45s var(--ease-out) backwards;
+}
+
 /* stage progress in checkout flows */
 @keyframes stage-in {
   from {
@@ -287,7 +298,8 @@
   .step-fill,
   .pill-in,
   .pulse-ring,
-  .stage-in {
+  .stage-in,
+  .page-in {
     animation: none;
   }
   .reveal,
