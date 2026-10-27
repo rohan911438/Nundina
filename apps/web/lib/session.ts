@@ -27,8 +27,8 @@ export async function authed<T>(path: string, init: { method?: string; body?: un
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
-  const json = (await res.json().catch(() => null)) as (T & { error?: { code: string; message: string } }) | null;
-  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? "http_error", json?.error?.message ?? res.statusText);
+  const json = (await res.json().catch(() => null)) as (T & { error?: { code: string; message: string; details?: unknown } }) | null;
+  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? "http_error", json?.error?.message ?? res.statusText, json?.error?.details);
   return json as T;
 }
 

@@ -7,6 +7,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import {
+  mockPriceAdapterAbi,
   outcomeResolverAbi,
   performanceEscrowAbi,
   providerRegistryAbi,
@@ -104,7 +105,7 @@ async function send(rowId: number, req: RelayRequest) {
     } catch (e) {
       const reason = revertReason(e);
       await tx`update relayed_txs set status = 'failed', error = ${reason}, updated_at = now() where id = ${rowId}`;
-      throw new ApiError(422, "tx_would_revert", reason, { purpose: req.purpose });
+      throw new ApiError(422, "tx_would_revert", humanRevert(reason), { purpose: req.purpose, reason });
     }
     const gasPrice = await pc.getGasPrice();
     const nonce = await pc.getTransactionCount({ address: account.address, blockTag: "pending" });
@@ -186,7 +187,22 @@ const ALL_ERRORS = [
   ...providerRegistryAbi,
   ...outcomeResolverAbi,
   ...revenueRouterAbi,
+  ...mockPriceAdapterAbi, // oracle adapters share these error names (StalePrice, BadPrice, UnknownMarket)
 ].filter((x) => x.type === "error");
+
+/** What a person should read for the contract errors they can actually hit. */
+const HUMAN: Record<string, string> = {
+  StalePrice: "The price oracle hasn't updated recently, so the signal can't be timestamped yet. Try again in a minute.",
+  BadPrice: "The price oracle returned an invalid price. Try again shortly.",
+  UnknownMarket: "This market isn't supported by the price oracle.",
+  InsufficientFreeBond: "Your bond can't cover this. Add bond in the provider dashboard.",
+  NotRegistered: "This wallet isn't a registered provider yet.",
+  AuthExpired: "The signed authorization expired. Sign again.",
+  BadRiskReward: "Take-profit and stop-loss give too little reward for the risk.",
+  PriceAboveCap: "The price is above the cap for your tier.",
+  RevealWindowClosed: "The reveal window for this signal has closed.",
+};
+export const humanRevert = (name: string) => HUMAN[name] ?? name;
 
 /** Best-effort human-readable revert reason, decoding Nundina custom errors. */
 export function revertReason(e: unknown): string {

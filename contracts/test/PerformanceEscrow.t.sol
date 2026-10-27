@@ -306,6 +306,29 @@ contract PerformanceEscrowTest is EscrowFixture {
         escrow.claimRefund(424242);
     }
 
+    /// A late keeper must not turn a right call into refunds: once final, only settle applies it.
+    function test_claimRefund_finalWin_mustSettle() public {
+        _buy(id, alice, PRICE);
+        resolver.proveTouch(id, sig, 0, abi.encode(BTC, 84_100e8, t0 + 10));
+        vm.warp(block.timestamp + 11 minutes);
+        resolver.finalize(id);
+        vm.warp(sig.validUntil + 24 hours + 1);
+        vm.expectRevert(PerformanceEscrow.OutcomeFinal.selector);
+        escrow.claimRefund(id);
+        escrow.settle(id);
+        assertEq(escrow.claimable(alice, address(usdt)), 0);
+        assertGt(escrow.claimable(registry.payoutOf(provider), address(usdt)), 0);
+    }
+
+    /// A touch that is pending but never finalized still leaves the refund path open.
+    function test_claimRefund_pendingNotFinal_stillRefunds() public {
+        _buy(id, alice, PRICE);
+        resolver.proveTouch(id, sig, 0, abi.encode(BTC, 84_100e8, t0 + 10));
+        vm.warp(sig.validUntil + 24 hours + 1);
+        escrow.claimRefund(id);
+        assertEq(escrow.claimable(alice, address(usdt)), PRICE);
+    }
+
     // ───────── recoverUncredited ─────────
 
     function test_recoverUncredited() public {

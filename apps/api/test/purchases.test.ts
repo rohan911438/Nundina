@@ -189,6 +189,24 @@ describe.skipIf(!canRunChain)("purchases (MockRail on anvil)", () => {
     expect(r.body.rail).toBe("eip3009");
   });
 
+  it("once a signal is paid in one token, a buyer asking for the other is refused before paying", async () => {
+    const p3 = privateKeyToAccount(generatePrivateKey());
+    await chain.registerProvider(p3, { bondUsd: "2" });
+    const { userId } = await makeProvider({ address: p3.address });
+    const { signalId: sid } = await chain.commitViaApi(p3, userId, PRICE);
+    const first = await newBuyer();
+    const { purchaseId } = await payOf(chain, first, sid, PRICE);
+    expect((await processVerify(purchaseId)).status).toBe("KEY_SENT");
+
+    const second = await newBuyer();
+    const wrong = await postJson("/purchases", { signalId: sid.toString(), token: "USDC_E" }, second.headers);
+    expect(wrong.status).toBe(409);
+    expect(wrong.body.error.code).toBe("token_locked");
+    expect(wrong.body.error.details).toEqual({ token: "USDT" });
+    const right = await postJson("/purchases", { signalId: sid.toString(), token: "USDT" }, second.headers);
+    expect(right.status).toBe(201);
+  });
+
   it("never logs plaintext, keys or salts", async () => {
     log.info({ plaintext: "SECRET-PLAINTEXT", nested: { salt: "0xSECRETSALT", aesKey: "SECRETKEY" } }, "redaction check");
     const all = testLogLines.join("\n");

@@ -18,7 +18,7 @@ const EnvSchema = z.object({
   RELAYER_PRIVATE_KEY: optionalHex32,
   CREDIT_SIGNER_PRIVATE_KEY: optionalHex32,
   /** Minimum relayer balance (wei) before it refuses to send. Default 0.05 HSK. */
-  RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
+  RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(5_000_000_000_000_000n), // 0.005 HSK ≈ 20 relays at 1 gwei
   /** Monitoring (prompt 15): keeper wallet + alert threshold, other services' /health URLs, team chat for alerts. */
   KEEPER_ADDRESS: optional,
   KEEPER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),

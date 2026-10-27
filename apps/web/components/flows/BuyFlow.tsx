@@ -35,6 +35,7 @@ function buyError(e: unknown): string {
     if (e.code === "capacity_full") return "This provider's bond can't cover another buyer right now. Try again after some of their signals settle.";
     if (e.code === "already_bought") return "You already bought this signal.";
     if (e.code === "signal_closed" || e.code === "signal_expired") return "This signal is no longer open.";
+    if (e.code === "token_locked") return `${e.message}. We switched it for you; press Pay again.`;
     return e.message;
   }
   return walletErrorMessage(e);
@@ -160,6 +161,9 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       await purchasesApi.submit(id, mandateSig, txHash);
       setStage("verifying");
     } catch (e) {
+      // the pot already holds the other token: switch to it so the next press just works
+      const locked = e instanceof ApiError && e.code === "token_locked" ? (e.details as { token?: TokenKey } | undefined)?.token : undefined;
+      if (locked && locked in TOKENS) setToken(locked);
       setStage("error");
       setError(buyError(e));
     }

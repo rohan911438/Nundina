@@ -65,6 +65,19 @@ async function payerOf(a: Auth): Promise<Address> {
   return getAddress(a.wallet);
 }
 
+/** The token a signal is already being paid in: on-chain once credited, else any purchase in flight. */
+async function potToken(signalId: bigint, ignorePurchaseId?: string): Promise<Address | null> {
+  const pot = await publicClient()
+    .readContract({ address: addr("PerformanceEscrow"), abi: performanceEscrowAbi, functionName: "potOf", args: [signalId] })
+    .catch(() => null);
+  if (pot && pot.token !== "0x0000000000000000000000000000000000000000") return getAddress(pot.token);
+  const inflight = await db().query.purchases.findMany({
+    where: and(eq(purchases.signalId, signalId), inArray(purchases.status, ["SUBMITTED", "FAILED_RETRYABLE", ...PAID_STATUSES])),
+  });
+  const other = inflight.find((p) => p.id !== ignorePurchaseId);
+  return other ? getAddress(other.token) : null;
+}
+
 async function ownPurchase(id: string, a: Auth) {
   if (!z.uuid().safeParse(id).success) throw notFound("Purchase");
   const p = await db().query.purchases.findFirst({ where: eq(purchases.id, id) });
@@ -160,6 +173,13 @@ export const purchaseRoutes = new Hono<AppEnv>()
     }
 
     const token = body.data.token === "USDC_E" ? usdcE(env().CHAIN_ID) : paymentToken(env().CHAIN_ID);
+    // a signal's pot holds one token: the first credit fixes it on-chain, so a second buyer in the
+    // other token would pay and then fail to credit. Refuse before any money moves.
+    const locked = await potToken(signalId, existing?.id);
+    if (locked && getAddress(locked) !== getAddress(token)) {
+      const sym = getAddress(locked) === getAddress(usdcE(env().CHAIN_ID)) ? "USDC_E" : "USDT";
+      throw new ApiError(409, "token_locked", `This signal is paid in ${sym === "USDC_E" ? "USDC" : "USDT"}; pay with that token`, { token: sym });
+    }
     const intent = await paymentRail().createIntent({ signalId, payer, token, amount: price, compliance });
     const values = {
       signalId,

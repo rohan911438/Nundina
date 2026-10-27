@@ -17,6 +17,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details?: unknown,
   ) {
     super(message);
   }
@@ -39,8 +40,8 @@ export async function get<T>(path: string, q?: Query, revalidate = 30): Promise<
     ...(typeof window === "undefined" ? { next: { revalidate } } : {}),
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
-    throw new ApiError(res.status, body?.error?.code ?? "http_error", body?.error?.message ?? res.statusText);
+    const body = (await res.json().catch(() => null)) as { error?: { code: string; message: string; details?: unknown } } | null;
+    throw new ApiError(res.status, body?.error?.code ?? "http_error", body?.error?.message ?? res.statusText, body?.error?.details);
   }
   return (await res.json()) as T;
 }
