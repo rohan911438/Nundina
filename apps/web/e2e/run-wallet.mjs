@@ -22,6 +22,11 @@ const env = {
   WEB_URL: "http://localhost:3001",
 };
 const shell = process.platform === "win32";
+// a dev server already on :3001 has no mock wallet, and the tests would fail with "Provider not found."
+if (await fetch("http://localhost:3001/legal").then(() => true, () => false)) {
+  console.error("Something is already serving :3001. Stop it first: this runner starts its own server with the mock wallet");
+  process.exit(1);
+}
 const web = spawn("npx", ["next", "dev", "--port", "3001"], { cwd: join(dir, ".."), env, stdio: "ignore", shell });
 
 async function up() {

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bot, Lock } from "lucide-react";
 import Link from "next/link";
+import { DashSkeleton, rowIn, Stats } from "@/components/dashboard/Stats";
 import { SignalStatusPill } from "@/components/signal/SignalStatusPill";
 import { signalState } from "@/lib/signal-state";
 import { ExternalLink } from "@/components/ui/external";
@@ -27,7 +28,7 @@ export function SubscriberDashboard({ compact = false }: { compact?: boolean }) 
 
 function Inner({ compact }: { compact: boolean }) {
   const q = useQuery({ queryKey: ["subscriber"], queryFn: me.subscriber, refetchInterval: 30_000 });
-  if (q.isPending) return <div className="h-64 animate-pulse rounded-2xl bg-surface" />;
+  if (q.isPending) return compact ? <div className="h-40 animate-pulse rounded-2xl bg-surface" /> : <DashSkeleton />;
   if (q.error) return <p role="alert" className="text-sm text-loss">{q.error.message}</p>;
   const d = q.data;
   const active = d.purchases.filter(isOpen);
@@ -38,28 +39,21 @@ function Inner({ compact }: { compact: boolean }) {
   return (
     <div className="space-y-8" data-testid="subscriber-dashboard">
       {!compact ? (
-        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-border">
-          {(
-            [
-              ["Spent", usd(d.totals.spentUsd)],
-              ["Refunded", usd(d.totals.refundedUsd)],
-              ["Net", usd(net)],
-            ] as const
-          ).map(([k, v]) => (
-            <div key={k} className="bg-surface p-4">
-              <dt className="text-xs text-muted">{k}</dt>
-              <dd className="num mt-1 text-2xl font-medium">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        <Stats
+          items={[
+            { k: "Spent", v: usd(d.totals.spentUsd) },
+            { k: "Refunded", v: usd(d.totals.refundedUsd), tone: Number(d.totals.refundedUsd) > 0 ? "text-win" : undefined },
+            { k: "Net", v: usd(net) },
+          ]}
+        />
       ) : null}
 
       <section>
         <h2 className="mb-3 font-medium">Active</h2>
         {active.length ? (
           <ul className="space-y-3">
-            {active.map((r) => (
-              <ActiveRow key={r.id} r={r} />
+            {active.map((r, i) => (
+              <ActiveRow key={r.id} r={r} i={i} />
             ))}
           </ul>
         ) : (
@@ -76,9 +70,9 @@ function Inner({ compact }: { compact: boolean }) {
       <section>
         <h2 className="mb-3 font-medium">History</h2>
         {history.length ? (
-          <ul className="divide-y divide-border rounded-2xl border border-border">
-            {history.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm">
+          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+            {history.map((r, i) => (
+              <li key={r.id} style={rowIn(i)} className="rise flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm">
                 <Link href={`/s/${r.signalId}`} className="font-medium hover:text-accent">
                   {r.signal.market} #{r.signalId}
                 </Link>
@@ -126,7 +120,7 @@ function Inner({ compact }: { compact: boolean }) {
   );
 }
 
-function ActiveRow({ r }: { r: Row }) {
+function ActiveRow({ r, i }: { r: Row; i: number }) {
   const w = useWallet();
   const keyed = KEYED_STATUSES.includes(r.status);
   const sig = useQuery({
@@ -150,7 +144,7 @@ function ActiveRow({ r }: { r: Row }) {
   const pl = s && last.data ? ((Number(last.data) - Number(s.entry)) / Number(s.entry)) * (s.side === "LONG" ? 1 : -1) : null;
 
   return (
-    <li className="rounded-2xl border border-border bg-surface p-4" data-testid="active-purchase">
+    <li className="rise rounded-2xl border border-border bg-surface p-4" style={rowIn(i)} data-testid="active-purchase">
       <div className="flex flex-wrap items-center gap-2">
         <Link href={`/s/${r.signalId}`} className="font-medium hover:text-accent">
           {r.signal.market} #{r.signalId}
@@ -166,7 +160,11 @@ function ActiveRow({ r }: { r: Row }) {
           <Cell k="SL" v={price(s.stopLoss, s.market)} tone="text-loss" />
           <Cell k="Live P/L" v={pl == null ? "—" : pct(pl, { signed: true, dp: 2 })} tone={pl == null ? "" : pl >= 0 ? "text-win" : "text-loss"} />
         </div>
-      ) : (
+      ) : null}
+      {s && last.data ? (
+        <Meter sl={Number(s.stopLoss)} entry={Number(s.entry)} tp={Number(s.takeProfit)} last={Number(last.data)} />
+      ) : null}
+      {s ? null : (
         <p className="mt-3 flex items-center gap-2 text-sm text-locked">
           <Lock aria-hidden className="size-4" />
           {keyed ? (sig.isError ? "Couldn't decrypt on this device" : "Decrypting…") : `Payment ${r.status.toLowerCase()}`}
@@ -197,4 +195,30 @@ function Cell({ k, v, tone = "" }: { k: string; v: string; tone?: string }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">{children}</p>;
+}
+
+/**
+ * Where the market is between stop-loss and take-profit. Both ends are drawn left to right as
+ * SL → TP whatever the side, so "further right" always means "closer to winning".
+ */
+function Meter({ sl, entry, tp, last }: { sl: number; entry: number; tp: number; last: number }) {
+  const at = (x: number) => Math.min(100, Math.max(0, ((x - sl) / (tp - sl)) * 100));
+  const p = at(last);
+  return (
+    <div className="mt-4" aria-label={`${Math.round(p)}% of the way from stop-loss to take-profit`} role="img">
+      <div className="relative h-1.5 rounded-full bg-gradient-to-r from-loss/40 via-surface-2 to-win/40">
+        <span aria-hidden className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-muted" style={{ left: `${at(entry)}%` }} />
+        <span
+          aria-hidden
+          className={cn("absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg transition-[left] duration-700 ease-[var(--ease-out)] motion-reduce:transition-none", p >= at(entry) ? "bg-win text-win" : "bg-loss text-loss", "pulse-ring")}
+          style={{ left: `${p}%` }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[11px] text-muted">
+        <span>SL</span>
+        <span>entry</span>
+        <span>TP</span>
+      </div>
+    </div>
+  );
 }
