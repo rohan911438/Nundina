@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { LOCAL_KEYS } from "./local-keys.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const contractsDir = join(root, "contracts");
@@ -53,6 +54,8 @@ const [cmd, netArg = "testnet"] = process.argv.slice(2);
 const net = netArg as Net;
 if (!(net in NETWORKS)) throw new Error(`unknown network ${netArg}`);
 const cfg = NETWORKS[net];
+// local always uses anvil's public default accounts so 31337 addresses are reproducible (CI, tests)
+if (net === "local") Object.assign(process.env, LOCAL_KEYS);
 
 if (net === "mainnet" && (cmd === "deploy" || cmd === "smoke") && process.env.CONFIRM_MAINNET !== "yes") {
   console.error("Refusing to touch mainnet: set CONFIRM_MAINNET=yes");

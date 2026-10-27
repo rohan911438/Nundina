@@ -1,19 +1,20 @@
-# 6. Status and open questions (as of Mon Oct 26 2026)
+# 6. Status and open questions (as of Tue Oct 27 2026)
 
 ## Status
 | Area | State |
 |---|---|
-| Research and product design | ✅ Done (`Idea/`) |
-| Detailed architecture | ✅ Done (`Architecture/`) |
-| Code | ❌ Not started. Repo has docs only |
-| HSP sandbox credentials | ❓ Unknown. Requested? Check the HashKey dev Telegram |
-| Mainnet funds (HSK + USDC.e) | ❓ Unknown |
-| Real providers lined up | ❓ Unknown (target 3–5) |
+| Research, product design, architecture | ✅ Done (`Idea/`, `Architecture/`) |
+| Contracts | ✅ 112 Foundry tests, Slither triaged (`contracts/SECURITY.md`), mainnet caps set, local deploy. ❌ Testnet/mainnet not deployed (no funded deployer) |
+| API, bot, keeper, indexer | ✅ Tested on anvil with mock HSP; rate limits, `/status` monitoring and alerts |
+| Web + Mini App | ✅ Public pages, dashboards, wallet e2e (Playwright) |
+| Agents + MCP | ✅ 3 strategies, execution, aggregator A2A (local WIN with payouts), MCP server |
+| CI | ✅ `.github/workflows/ci.yml` (first run happens on push) |
+| HSP credentials | ❌ Not received. Mock rail in use (NEEDS #7) |
+| Mainnet funds, hosting, alerts chat | ❌ NEEDS #21–23 |
+| Real providers / traction | ❌ Not started (NEEDS #24, `TRACTION.md`) |
+| Video, deck, submission | ❌ Runbook and outline ready (`docs/DEMO.md`, `docs/PITCH.md`); NEEDS #25–26 |
 
-**Schedule:** today is D2 of 8. The original plan had D1 (core contracts) done by now. Suggested catch-up:
-- Merge D1 + D2 into Oct 26–27 (all contracts + fork tests).
-- Keep HSP on Oct 28 with mock receipts if credentials are still missing.
-- Cut order if late: shadow leaderboard → HSKSwap execution → EIP-3009 fast path → devkit adapter → aggregator/RevenueRouter (keep MCP; it is cheap).
+**What shipped vs the plan.** Everything in the plan was built. Not live yet: HSKSwap execution (fills simulated, NEEDS #19), `@hsp/sdk`/`@hsp/mcp` (hand-rolled equivalents, NEEDS #18), Supra pull touch proofs (off until the proof API is confirmed, NEEDS #3), KYC badge issuer (Q5).
 
 ## Open questions
 | # | Question | Who/where to ask | Blocks |

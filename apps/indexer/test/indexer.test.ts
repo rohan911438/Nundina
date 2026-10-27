@@ -4,7 +4,7 @@
  * rebuilds the same state. Skips without Foundry or local keys.
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { openSync } from "node:fs";
+import { existsSync, openSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +17,7 @@ import { performanceEscrowAbi, signalBookAbi } from "@nundina/shared/abis";
 import { closeDb, db, sql } from "../../api/src/db/client.js";
 import { providers, purchases, settlements, signals } from "../../api/src/db/schema.js";
 import { recomputeProvider } from "../../api/src/jobs/scoring.js";
-import { stopQueue } from "../../api/src/jobs/queue.js";
+import { enqueue, JOBS, stopQueue } from "../../api/src/jobs/queue.js";
 import { processVerify } from "../../api/src/jobs/hspRetry.js";
 import { buyAndPay, newBuyer } from "../../api/test/buyer.js";
 import { canRunChain, keys, startChain, type Chain } from "../../api/test/chain.js";
@@ -26,6 +26,8 @@ import { resetProjections, syncOnce } from "../src/sync.js";
 
 const PRICE = 1_000_000n;
 const SCHEMA = "idx_test";
+const PONDER_LOG = join(tmpdir(), "nundina-ponder-test.log");
+const ponderLogTail = () => (existsSync(PONDER_LOG) ? readFileSync(PONDER_LOG, "utf8").split(/\r?\n/).slice(-40).join("\n") : "(no log)");
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 async function until<T>(fn: () => Promise<T | undefined | null | false>, ms = 60_000): Promise<T> {
@@ -34,7 +36,7 @@ async function until<T>(fn: () => Promise<T | undefined | null | false>, ms = 60
   for (;;) {
     const v = await fn().catch((e) => void (last = e));
     if (v) return v;
-    if (Date.now() > end) throw new Error(`timed out${last ? `: ${(last as Error).message}` : ""}`);
+    if (Date.now() > end) throw new Error(`timed out${last ? `: ${(last as Error).message}` : ""}\n--- ponder log (tail)\n${ponderLogTail()}`);
     await new Promise((r) => setTimeout(r, 500));
   }
 }
@@ -65,7 +67,7 @@ describe.skipIf(!canRunChain)("indexer (ponder + projector on anvil)", () => {
     chain = await startChain();
     process.env.INDEXER_DB_SCHEMA = SCHEMA;
     await sql().unsafe(`drop schema if exists ${SCHEMA} cascade`);
-    const log = openSync(join(tmpdir(), "nundina-ponder-test.log"), "w");
+    const log = openSync(PONDER_LOG, "w");
     ponder = spawn("pnpm", ["exec", "ponder", "start", "--schema", SCHEMA, "--port", String(43_000 + Math.floor(Math.random() * 1000))], {
       cwd: root,
       shell: process.platform === "win32",
@@ -114,6 +116,8 @@ describe.skipIf(!canRunChain)("indexer (ponder + projector on anvil)", () => {
       { to: contractAddress(31337, "PerformanceEscrow"), data: encodeFunctionData({ abi: performanceEscrowAbi, functionName: "settle", args: [signalId] }) },
     ];
     for (const c of calls) await chain.pub.waitForTransactionReceipt({ hash: await caller.sendTransaction(c) });
+    // a little depth past the settle so Ponder's realtime sync doesn't wait on the head block
+    await chain.testClient.mine({ blocks: 3 });
 
     const t0 = Date.now();
     const target = await head();
@@ -131,7 +135,11 @@ describe.skipIf(!canRunChain)("indexer (ponder + projector on anvil)", () => {
 
     const jobs = await sql().unsafe(`select name, data from pgboss.job where name = 'score.recompute'`);
     const job = jobs.find((j: any) => j.data?.providerId);
-    expect(job).toBeTruthy();
+    if (!job) {
+      const all = await sql().unsafe(`select name, state, singleton_key, data from pgboss.job order by created_on`).catch((e) => [String(e)]);
+      const probe = await enqueue(JOBS.score, { probe: true }).catch((e) => `threw ${e}`);
+      throw new Error(`no score job; probe enqueue → ${probe}; pgboss.job: ${JSON.stringify(all)}`);
+    }
 
     // what the API worker does with that job, then the public read
     await recomputeProvider(job!.data.providerId, { fetchPrices: false });

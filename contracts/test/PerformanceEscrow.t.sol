@@ -263,6 +263,29 @@ contract PerformanceEscrowTest is EscrowFixture {
         assertLt(g - gasleft(), 15_000_000); // bounded
     }
 
+    function test_maxSubscribers_configurable() public {
+        vm.expectRevert(PerformanceEscrow.BadCap.selector);
+        vm.prank(admin);
+        escrow.setMaxSubscribers(201);
+        vm.expectRevert(PerformanceEscrow.BadCap.selector);
+        vm.prank(admin);
+        escrow.setMaxSubscribers(0);
+        vm.expectRevert();
+        escrow.setMaxSubscribers(50); // admin only
+
+        vm.prank(admin);
+        escrow.setMaxSubscribers(2); // mainnet uses 50; 2 keeps the test short
+        _bond(provider, 1_000e6);
+        _buy(id, address(0x1001), PRICE);
+        _buy(id, address(0x1002), PRICE);
+        _tryCredit(id, alice, address(usdt), PRICE, PerformanceEscrow.TooManySubscribers.selector);
+        _touch(id, sig, 1, 80_100e8, t0 + 100);
+        escrow.settle(id); // exits unaffected
+        uint256 before = usdt.balanceOf(address(0x1001));
+        escrow.withdrawFor(address(0x1001), address(usdt));
+        assertGt(usdt.balanceOf(address(0x1001)), before);
+    }
+
     // ───────── claimRefund ─────────
 
     function test_claimRefund_afterDelay_evenWhenPaused() public {

@@ -12,6 +12,7 @@ const Env = z.object({
   RPC_URL: z.string().optional(),
   LOCAL_RPC_URL: z.string().optional(),
   HSK_TESTNET_RPC_URL: z.string().optional(),
+  HSK_RPC_URL: z.string().optional(),
   /** Price of `verify_track_record`, 6-dec units (10000 = 0.01 USDC.e). */
   VERIFY_PRICE_UNITS: z.coerce.bigint().default(10_000n),
   /** x402 facilitator (HSP). Unset → payment-required errors point to prepaid credits. */

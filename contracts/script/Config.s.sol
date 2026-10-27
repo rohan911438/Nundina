@@ -18,6 +18,7 @@ contract Config is Script {
         bool touchProofs;
         uint256 maxPricePerSub; // 6 decimals
         uint64 pushStaleness;
+        uint256 maxSubscribers; // per signal
     }
 
     struct Actors {
@@ -43,7 +44,8 @@ contract Config is Script {
                 timelockDelay: 24 hours,
                 touchProofs: false, // see ORACLES.md: enable once Supra proof API is confirmed
                 maxPricePerSub: 5e6, // $5 cap for the mainnet MVP
-                pushStaleness: 26 hours
+                pushStaleness: 26 hours,
+                maxSubscribers: 50 // mainnet MVP cap
             });
         } else if (chainId == 133) {
             c = NetConfig({
@@ -58,7 +60,8 @@ contract Config is Script {
                 timelockDelay: 1 hours,
                 touchProofs: true,
                 maxPricePerSub: 50e6,
-                pushStaleness: 2 hours
+                pushStaleness: 2 hours,
+                maxSubscribers: 200
             });
         } else {
             c = NetConfig({
@@ -73,7 +76,8 @@ contract Config is Script {
                 timelockDelay: 1 hours,
                 touchProofs: true,
                 maxPricePerSub: 50e6,
-                pushStaleness: 2 hours
+                pushStaleness: 2 hours,
+                maxSubscribers: 200
             });
         }
     }

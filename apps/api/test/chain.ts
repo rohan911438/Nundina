@@ -23,6 +23,7 @@ import { resetEnv } from "../src/env.js";
 import { resetClients } from "../src/chain/clients.js";
 import { INTERNAL, postJson } from "./helpers.js";
 import { sql as rawSql } from "../src/db/client.js";
+import { LOCAL_KEYS } from "../../../scripts/local-keys.js";
 
 /** A fresh chain restarts signal ids at 1: drop rows that came from a previous chain. */
 async function clearChainRows() {
@@ -37,7 +38,12 @@ async function clearChainRows() {
 }
 
 export const ROOT = join(import.meta.dirname, "..", "..", "..");
-const bin = (n: string) => join(homedir(), ".foundry", "bin", process.platform === "win32" ? `${n}.exe` : n);
+/** Foundry from ~/.foundry/bin (foundryup), else whatever is on PATH (CI's foundry-toolchain). */
+const bin = (n: string) => {
+  const home = join(homedir(), ".foundry", "bin", process.platform === "win32" ? `${n}.exe` : n);
+  return existsSync(home) ? home : n;
+};
+const hasFoundry = () => spawnSync(bin("anvil"), ["--version"], { stdio: "ignore" }).status === 0;
 
 export function rootEnv(): Record<string, string> {
   const f = join(ROOT, ".env");
@@ -50,9 +56,13 @@ export function rootEnv(): Record<string, string> {
   return out;
 }
 
-export const keys = rootEnv();
-export const canRunChain =
-  existsSync(bin("anvil")) && Boolean(keys.DEPLOYER_PRIVATE_KEY && keys.RELAYER_PRIVATE_KEY && keys.CREDIT_SIGNER_PRIVATE_KEY);
+/**
+ * Local-chain roles are anvil's public default accounts #0–#3, so the 31337 addresses in
+ * addresses.json are reproducible anywhere (CI included) and no real key is ever used on anvil.
+ * `pnpm contracts:deploy:local` uses the same accounts (scripts/local-keys.ts).
+ */
+export const keys = LOCAL_KEYS;
+export const canRunChain = hasFoundry();
 
 async function launch() {
   // ANVIL_PORT pins the port (the web e2e stack needs 8545, the browser default)

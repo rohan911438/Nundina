@@ -103,7 +103,7 @@ export async function aggregatorService(opts: { root?: Nundina; wallet: AgentWal
     mine.add(signalId);
     await log(
       "post",
-      `meta ${b.proposal.side} @ ${b.proposal.entry} TP ${b.proposal.takeProfit} SL ${b.proposal.stopLoss}, $${priceUsd} (paid $${(Number(paid) / 1e6).toFixed(2)} upstream); ${b.upstream.map((u, i) => `#${u}: ${b.upstreamBps[i]} bps`).join(", ")}; ${b.proposal.rationale}`,
+      `meta ${b.proposal.side}, ${priceUsd} (paid $${(Number(paid) / 1e6).toFixed(2)} upstream); ${b.upstream.map((u, i) => `#${u}: ${b.upstreamBps[i]} bps`).join(", ")} (levels sealed until reveal)`,
       { signalId },
     );
   }

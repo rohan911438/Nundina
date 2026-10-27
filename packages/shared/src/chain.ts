@@ -39,6 +39,8 @@ export const hashkeyTestnet = defineChain({
 export const localChain = defineChain({
   id: LOCAL_CHAIN_ID,
   name: "Nundina Local",
+  /** anvil automines; makes viem poll receipts every 500 ms instead of 4 s */
+  blockTime: 1_000,
   nativeCurrency: { name: "HashKey Platform Token", symbol: "HSK", decimals: 18 },
   rpcUrls: {
     default: { http: [env.LOCAL_RPC_URL ?? "http://127.0.0.1:8545"] },

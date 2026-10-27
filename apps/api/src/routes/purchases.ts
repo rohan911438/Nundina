@@ -22,7 +22,15 @@ const OPEN_STATUSES = ["COMMITTED", "REVEALED"];
 const PAID_STATUSES = ["CREDITED", "KEY_SENT", "SETTLED_WIN", "REFUNDED"];
 /** Statuses after which a buyer may start a fresh attempt for the same signal. */
 const RETRYABLE_STATUSES = ["REJECTED", "FAILED_RETRYABLE"];
+/** Fallback if the escrow can't be read; the on-chain cap (`maxSubscribers`, 50 on mainnet) wins. */
 const MAX_SUBSCRIBERS = 200;
+
+async function subscriberCap(): Promise<number> {
+  const cap = await publicClient()
+    .readContract({ address: addr("PerformanceEscrow"), abi: performanceEscrowAbi, functionName: "maxSubscribers" })
+    .catch(() => BigInt(MAX_SUBSCRIBERS));
+  return Number(cap);
+}
 
 const CreateBody = z.object({
   signalId: z.union([z.string().regex(/^\d+$/), z.number().int().positive()]).transform((v) => BigInt(v)),
@@ -144,7 +152,7 @@ export const purchaseRoutes = new Hono<AppEnv>()
       functionName: "capacity",
       args: [getAddress(provider.address), price],
     });
-    if (capacity < 1n || paid.length >= MAX_SUBSCRIBERS) {
+    if (capacity < 1n || paid.length >= (await subscriberCap())) {
       throw conflict("capacity_full", "This provider's bond cannot cover another buyer right now");
     }
 

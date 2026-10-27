@@ -126,7 +126,7 @@ export function executionService(root = new Nundina()) {
         }
         set.add(s.id);
         const plain = await decryptPurchase(api, sec.encKey, r.purchaseId);
-        await log("buy", `${d.reason}. Unlocked: ${plain.side} @ ${plain.entry} TP ${plain.takeProfit} SL ${plain.stopLoss}`, { signalId: s.id, purchaseId: r.purchaseId });
+        await log("buy", `${d.reason}. Unlocked ${plain.side} (levels kept in memory, not logged)`, { signalId: s.id, purchaseId: r.purchaseId });
         if (ag.policy.autoTrade) {
           // TODO(confirm): HSKSwap router; until then fills are simulated at the oracle price and labelled so
           const px = Number(s.oraclePriceAtCommit ?? plain.entry);

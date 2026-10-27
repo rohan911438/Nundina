@@ -6,3 +6,8 @@ allowBuilds:
   # postinstall is only a version check
   '@reown/appkit': false
   esbuild: true
+overrides:
+  # pnpm audit (prompt 15): patch-level fixes for transitive deps of ponder / @telegram-apps
+  'ponder>vite': 8.3.5
+  'ponder>@hono/node-server': 1.19.15
+  valibot: 1.4.2

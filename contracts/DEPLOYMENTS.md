@@ -25,20 +25,20 @@ Addresses are written by `script/Deploy.s.sol` to `deployments/<chainId>.json` a
 ## Addresses
 | Contract | Local (31337) | Testnet (133) | Mainnet (177) |
 |---|---|---|---|
-| Timelock | `0xD264D767C0D3A75030dE7b5AB926D58d09e3626A` | pending: deployer needs testnet HSK | not deployed |
-| IdentityRegistry (ERC-8004) | `0x9C76529551b9AbCE1dbDB4024afD5638B00b353b` | | |
-| ReputationRegistry (ERC-8004) | `0xf3E4dcfD058e94Ac515F694A68E4B71DBaBA2D32` | | |
-| ProviderRegistry | `0x1Efe8317BDA4572b39532F7eb160FF1D0EBA45D9` | | |
-| SignalBook | `0x76E24B4B7aF6581970401336bD4898CDbD23a525` | | |
-| OutcomeResolver | `0xCbA92a5a4B7f785E0DBe3cf40BD243242395f8aa` | | |
-| Push price adapter | `0x60714ba629178ed42eF6F8aD8d283071810A91ac` (mock) | | |
-| Touch verifier | `0x60714ba629178ed42eF6F8aD8d283071810A91ac` (mock) | | |
-| RevenueRouter | `0x1dc2F824Da90EAd40e655e6a681979aEE6535416` | | |
-| SignerCreditVerifier | `0xaa101e62390694164190A62683E203a0Fa21873C` | | |
-| PerformanceEscrow | `0xb5e8AA10E6b3b5C814aa86BFF06c9869BE4ff953` | | |
-| USDT | `0x4A9F0482B16146b9564143A15a1B6d26Ffd072D9` (mock) | | `0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029` |
-| USDC.e | `0x3aF449FB0e190799342F9ff00f9175Ba35C2834d` (mock) | | `0x054ed45810DbBAb8B27668922D110669c9D88D0a` |
+| Timelock | `0x5FbDB2315678afecb367f032d93F642f64180aa3` | pending: deployer needs testnet HSK | not deployed |
+| IdentityRegistry (ERC-8004) | `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9` | | |
+| ReputationRegistry (ERC-8004) | `0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9` | | |
+| ProviderRegistry | `0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e` | | |
+| SignalBook | `0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0` | | |
+| OutcomeResolver | `0x610178dA211FEF7D417bC0e6FeD39F05609AD788` | | |
+| Push price adapter | `0x5FC8d32690cc91D4c39d9d3abcBD16989F875707` (mock) | | |
+| Touch verifier | `0x5FC8d32690cc91D4c39d9d3abcBD16989F875707` (mock) | | |
+| RevenueRouter | `0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82` | | |
+| SignerCreditVerifier | `0x9A676e781A523b5d0C0e43731313A708CB607508` | | |
+| PerformanceEscrow | `0x0B306BF915C4d645ff596e518fAf3F9669b97016` | | |
+| USDT | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` (mock) | | `0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029` |
+| USDC.e | `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` (mock) | | `0x054ed45810DbBAb8B27668922D110669c9D88D0a` |
 
 Explorer: mainnet <https://hsk.blockscout.com>; testnet explorer URL to be confirmed (`HSK_TESTNET_EXPLORER_URL`).
 
-Local addresses are deterministic for a fresh anvil + the same deployer key, so re-running `pnpm contracts:deploy:local` on a fresh chain reproduces them.
+Local addresses are deterministic: local deploys and tests always use anvil's public default accounts #0–#3 (`scripts/local-keys.ts`: deployer, relayer, keeper, credit signer), so a fresh anvil + `pnpm contracts:deploy:local` reproduces them anywhere, CI included. For local dev against `pnpm chain:local`, point the API/keeper at the same accounts (`RELAYER_PRIVATE_KEY`, `KEEPER_PRIVATE_KEY`, `CREDIT_SIGNER_PRIVATE_KEY` from that file); never reuse your testnet/mainnet keys on anvil.

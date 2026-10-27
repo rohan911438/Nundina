@@ -7,6 +7,7 @@ export const JOBS = {
   hspVerify: "hsp.verify",
   reveal: "signal.reveal",
   score: "score.recompute",
+  monitor: "ops.monitor",
 } as const;
 export type JobName = (typeof JOBS)[keyof typeof JOBS];
 

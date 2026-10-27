@@ -20,6 +20,8 @@ export function queue(): Promise<PgBoss> {
     boss = b;
     return b;
   })();
+  // a failed start must not poison every later enqueue: retry on the next call
+  starting.catch(() => (starting = undefined));
   return starting;
 }
 

@@ -6,7 +6,7 @@ import { env } from "./env.js";
 export const chain = () => chainById(env().CHAIN_ID);
 export function rpcUrl() {
   const e = env();
-  return e.RPC_URL ?? (e.CHAIN_ID === 31337 ? e.LOCAL_RPC_URL : e.HSK_TESTNET_RPC_URL) ?? chain().rpcUrls.default.http[0];
+  return e.RPC_URL ?? ({ 31337: e.LOCAL_RPC_URL, 133: e.HSK_TESTNET_RPC_URL, 177: e.HSK_RPC_URL } as Record<number, string | undefined>)[e.CHAIN_ID] ?? chain().rpcUrls.default.http[0];
 }
 
 let client: PublicClient | undefined;
