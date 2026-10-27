@@ -23,7 +23,13 @@ export function TopProviders({ providers }: { providers: ApiProvider[] }) {
           ))}
         </div>
       ) : (
-        <p className="mt-10 rounded-2xl border border-dashed border-border p-10 text-center text-muted">No providers yet.</p>
+        <div className="reveal-child mt-10 rounded-2xl border border-dashed border-border p-10 text-center">
+          <p className="font-medium">No providers ranked yet</p>
+          <p className="mt-1 text-sm text-muted">The first ones to post and settle signals take the top spots.</p>
+          <Link href="/start" className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline">
+            Become a provider <ArrowRight aria-hidden className="size-4" />
+          </Link>
+        </div>
       )}
     </Reveal>
   );
