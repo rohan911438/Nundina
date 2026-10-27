@@ -2,21 +2,21 @@
   "133": {},
   "177": {},
   "31337": {
-    "startBlock": 116,
-    "IdentityRegistry": "0x9C76529551b9AbCE1dbDB4024afD5638B00b353b",
-    "OutcomeResolver": "0xCbA92a5a4B7f785E0DBe3cf40BD243242395f8aa",
-    "PerformanceEscrow": "0xb5e8AA10E6b3b5C814aa86BFF06c9869BE4ff953",
-    "ProviderRegistry": "0x1Efe8317BDA4572b39532F7eb160FF1D0EBA45D9",
-    "PushPriceAdapter": "0x60714ba629178ed42eF6F8aD8d283071810A91ac",
-    "ReputationRegistry": "0xf3E4dcfD058e94Ac515F694A68E4B71DBaBA2D32",
-    "RevenueRouter": "0x1dc2F824Da90EAd40e655e6a681979aEE6535416",
-    "SignalBook": "0x76E24B4B7aF6581970401336bD4898CDbD23a525",
-    "SignerCreditVerifier": "0xaa101e62390694164190A62683E203a0Fa21873C",
-    "Timelock": "0xD264D767C0D3A75030dE7b5AB926D58d09e3626A",
-    "TouchVerifier": "0x60714ba629178ed42eF6F8aD8d283071810A91ac",
+    "startBlock": 0,
+    "IdentityRegistry": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "OutcomeResolver": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+    "PerformanceEscrow": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    "ProviderRegistry": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+    "PushPriceAdapter": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "ReputationRegistry": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "RevenueRouter": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+    "SignalBook": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    "SignerCreditVerifier": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+    "Timelock": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "TouchVerifier": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
     "tokens": {
-      "USDT": "0x4A9F0482B16146b9564143A15a1B6d26Ffd072D9",
-      "USDC_E": "0x3aF449FB0e190799342F9ff00f9175Ba35C2834d"
+      "USDT": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "USDC_E": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
     }
   }
 }
