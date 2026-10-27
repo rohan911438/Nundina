@@ -17,7 +17,7 @@ import { performanceEscrowAbi, signalBookAbi } from "@nundina/shared/abis";
 import { closeDb, db, sql } from "../../api/src/db/client.js";
 import { providers, purchases, settlements, signals } from "../../api/src/db/schema.js";
 import { recomputeProvider } from "../../api/src/jobs/scoring.js";
-import { stopQueue } from "../../api/src/jobs/queue.js";
+import { enqueue, JOBS, stopQueue } from "../../api/src/jobs/queue.js";
 import { processVerify } from "../../api/src/jobs/hspRetry.js";
 import { buyAndPay, newBuyer } from "../../api/test/buyer.js";
 import { canRunChain, keys, startChain, type Chain } from "../../api/test/chain.js";
@@ -135,7 +135,11 @@ describe.skipIf(!canRunChain)("indexer (ponder + projector on anvil)", () => {
 
     const jobs = await sql().unsafe(`select name, data from pgboss.job where name = 'score.recompute'`);
     const job = jobs.find((j: any) => j.data?.providerId);
-    expect(job).toBeTruthy();
+    if (!job) {
+      const all = await sql().unsafe(`select name, state, singleton_key, data from pgboss.job order by created_on`).catch((e) => [String(e)]);
+      const probe = await enqueue(JOBS.score, { probe: true }).catch((e) => `threw ${e}`);
+      throw new Error(`no score job; probe enqueue → ${probe}; pgboss.job: ${JSON.stringify(all)}`);
+    }
 
     // what the API worker does with that job, then the public read
     await recomputeProvider(job!.data.providerId, { fetchPrices: false });
