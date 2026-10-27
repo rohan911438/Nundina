@@ -36,12 +36,16 @@ async function up() {
   throw new Error("web did not start on :3001");
 }
 
+// one stack = one draft, one signal, one mock wallet: the suite can run once, on one device project
+const args = process.argv.slice(2);
+if (!args.some((a) => a.startsWith("--project"))) args.push("--project", "desktop");
+
 let code = 1;
 try {
   await up();
   // compile the wallet routes once so the first test doesn't race a dev-server reload
   for (const p of [`/tg/confirm/${stack.draftId}`, `/tg/buy/${stack.signalId}?web=1`, "/dashboard", "/dashboard/agents"]) await fetch(`http://localhost:3001${p}`);
-  const pw = spawn("npx", ["playwright", "test", "e2e/wallet.spec.ts", ...process.argv.slice(2)], { cwd: join(dir, ".."), env, stdio: "inherit", shell });
+  const pw = spawn("npx", ["playwright", "test", "e2e/wallet.spec.ts", ...args], { cwd: join(dir, ".."), env, stdio: "inherit", shell });
   code = await new Promise((r) => pw.on("exit", r));
 } finally {
   if (shell) spawnSync("taskkill", ["/F", "/T", "/PID", String(web.pid)]);
