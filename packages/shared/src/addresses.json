@@ -1,5 +1,22 @@
 {
-  "133": {},
+  "133": {
+    "startBlock": 34969274,
+    "IdentityRegistry": "0x4A9F0482B16146b9564143A15a1B6d26Ffd072D9",
+    "OutcomeResolver": "0x008dDB1a2150941E3b56d1a31bD9ce6832Fa8589",
+    "PerformanceEscrow": "0x1dc2F824Da90EAd40e655e6a681979aEE6535416",
+    "ProviderRegistry": "0x56898432063bD084a30448032087216cC07A2A14",
+    "PushPriceAdapter": "0x9C76529551b9AbCE1dbDB4024afD5638B00b353b",
+    "ReputationRegistry": "0x3aF449FB0e190799342F9ff00f9175Ba35C2834d",
+    "RevenueRouter": "0x1Efe8317BDA4572b39532F7eb160FF1D0EBA45D9",
+    "SignalBook": "0xCbA92a5a4B7f785E0DBe3cf40BD243242395f8aa",
+    "SignerCreditVerifier": "0x76E24B4B7aF6581970401336bD4898CDbD23a525",
+    "Timelock": "0xD264D767C0D3A75030dE7b5AB926D58d09e3626A",
+    "TouchVerifier": "0x9C76529551b9AbCE1dbDB4024afD5638B00b353b",
+    "tokens": {
+      "USDT": "0x372325443233fEbaC1F6998aC750276468c83CC6",
+      "USDC_E": "0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6"
+    }
+  },
   "177": {},
   "31337": {
     "startBlock": 0,

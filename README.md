@@ -119,20 +119,22 @@ Why each choice: [`Idea/06-tech-stack.md`](Idea/06-tech-stack.md)
 
 ## Contract addresses
 
+**Testnet (HashKey Chain 133): deployed 27 Oct 2026** with HSP's testnet USDT/USDC as payment tokens; roles checked on-chain and smoke-tested. The organizers confirmed testnet is fine for the demo; mainnet comes after winning.
+
 Mainnet (HashKey Chain 177): **not deployed yet.** The deploy is guarded by `CONFIRM_MAINNET=yes` and waits for a funded deployer (see `NEEDS-FROM-USER.md`). Once deployed, `pnpm contracts:export` fills this table with [Blockscout](https://hsk.blockscout.com) links.
 
 | Contract | Mainnet (177) | Testnet (133) |
 |---|---|---|
-| SignalBook | _pending_ | _pending_ |
-| PerformanceEscrow | _pending_ | _pending_ |
-| OutcomeResolver | _pending_ | _pending_ |
-| RevenueRouter | _pending_ | _pending_ |
-| ProviderRegistry | _pending_ | _pending_ |
-| SignerCreditVerifier | _pending_ | _pending_ |
-| ERC-8004 Identity / Reputation | _pending_ | _pending_ |
-| Timelock (admin of all) | _pending_ | _pending_ |
-| USDT | [`0xF1B5…9029`](https://hsk.blockscout.com/address/0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029) | |
-| USDC.e | [`0x054e…8D0a`](https://hsk.blockscout.com/address/0x054ed45810DbBAb8B27668922D110669c9D88D0a) | |
+| SignalBook | _pending_ | `0xCbA92a5a4B7f785E0DBe3cf40BD243242395f8aa` |
+| PerformanceEscrow | _pending_ | `0x1dc2F824Da90EAd40e655e6a681979aEE6535416` |
+| OutcomeResolver | _pending_ | `0x008dDB1a2150941E3b56d1a31bD9ce6832Fa8589` |
+| RevenueRouter | _pending_ | `0x1Efe8317BDA4572b39532F7eb160FF1D0EBA45D9` |
+| ProviderRegistry | _pending_ | `0x56898432063bD084a30448032087216cC07A2A14` |
+| SignerCreditVerifier | _pending_ | `0x76E24B4B7aF6581970401336bD4898CDbD23a525` |
+| ERC-8004 Identity / Reputation | _pending_ | `0x4A9F0482B16146b9564143A15a1B6d26Ffd072D9` / `0x3aF449FB0e190799342F9ff00f9175Ba35C2834d` |
+| Timelock (admin of all) | _pending_ | `0xD264D767C0D3A75030dE7b5AB926D58d09e3626A` |
+| USDT | [`0xF1B5…9029`](https://hsk.blockscout.com/address/0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029) | `0x372325443233fEbaC1F6998aC750276468c83CC6` (HSP test) |
+| USDC.e | [`0x054e…8D0a`](https://hsk.blockscout.com/address/0x054ed45810DbBAb8B27668922D110669c9D88D0a) | `0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6` (HSP test) |
 
 Local (anvil) addresses and the deploy runbook are in [`contracts/DEPLOYMENTS.md`](contracts/DEPLOYMENTS.md). The security model, admin powers and the pre-mainnet review (Slither triage included) are in [`contracts/SECURITY.md`](contracts/SECURITY.md).
 
