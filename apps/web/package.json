@@ -9,14 +9,21 @@
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:wallet": "node e2e/run-wallet.mjs"
   },
   "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@nundina/shared": "workspace:*",
     "@radix-ui/react-slot": "1.5.0",
+    "@reown/appkit": "1.8.14",
+    "@reown/appkit-adapter-wagmi": "1.8.14",
     "@tanstack/react-query": "5.104.2",
+    "@telegram-apps/sdk-react": "3.3.9",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "eciesjs": "0.5.0",
     "lightweight-charts": "5.2.1",
     "lucide-react": "1.55.0",
     "next": "16.4.3",

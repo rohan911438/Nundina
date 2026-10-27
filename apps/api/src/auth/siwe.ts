@@ -10,6 +10,7 @@ import { env, sessionSecret } from "../env.js";
 import { publicClient } from "../chain/clients.js";
 import { badRequest, unauthorized } from "../lib/errors.js";
 import type { AppEnv } from "./context.js";
+import { verifyInitData } from "./telegram.js";
 import type { Context } from "hono";
 
 export const SESSION_COOKIE = "nd_session";
@@ -44,7 +45,27 @@ export async function userIdForWallet(wallet: string): Promise<number> {
   return row!.id;
 }
 
-const VerifyBody = z.object({ message: z.string().min(10), signature: z.string().regex(/^0x[0-9a-fA-F]+$/) });
+/**
+ * Inside the Mini App the client also sends initData: move the Telegram id onto the wallet user so
+ * bot DMs and Mini App calls resolve to the same account. A Telegram-only row (created by the bot)
+ * gives up its id; a wallet-holding row keeps it (one Telegram account, one wallet).
+ */
+async function linkTelegram(c: Context, userId: number) {
+  const initData = c.req.header("x-telegram-init-data");
+  const token = env().TELEGRAM_BOT_TOKEN;
+  if (!initData || !token) return;
+  const d = verifyInitData(initData, token);
+  if (!d?.user) return;
+  const tgUser = await db().query.users.findFirst({ where: eq(users.telegramId, d.user.id) });
+  if (tgUser?.id === userId) return;
+  if (tgUser?.wallet) throw badRequest("telegram_linked", "This Telegram account is linked to another wallet");
+  await db().transaction(async (tx) => {
+    if (tgUser) await tx.update(users).set({ telegramId: null }).where(eq(users.id, tgUser.id));
+    await tx.update(users).set({ telegramId: d.user!.id, telegramUsername: d.user!.username }).where(eq(users.id, userId));
+  });
+}
+
+const VerifyBody =z.object({ message: z.string().min(10), signature: z.string().regex(/^0x[0-9a-fA-F]+$/) });
 
 export const siweRoutes = new Hono<AppEnv>()
   .get("/nonce", async (c) => {
@@ -82,6 +103,7 @@ export const siweRoutes = new Hono<AppEnv>()
     if (!ok) throw unauthorized("Bad signature");
 
     const userId = await userIdForWallet(address);
+    await linkTelegram(c, userId);
     const payload: SessionPayload = { userId, wallet: address.toLowerCase(), exp: Math.floor(Date.now() / 1000) + SESSION_TTL_S };
     await setSignedCookie(c, SESSION_COOKIE, JSON.stringify(payload), sessionSecret(), {
       httpOnly: true,

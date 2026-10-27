@@ -18,7 +18,7 @@ export async function userIdForTelegram(telegramId: number, username?: string): 
   const [row] = await db()
     .insert(users)
     .values({ telegramId, telegramUsername: username })
-    .onConflictDoUpdate({ target: users.telegramId, set: { telegramUsername: username } })
+    .onConflictDoUpdate({ target: users.telegramId, set: { telegramUsername: username ?? null } })
     .returning({ id: users.id });
   return row!.id;
 }

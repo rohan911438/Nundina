@@ -65,6 +65,9 @@ export const providers = pgTable(
     kind: text("kind").notNull().default("human"),
     isPractice: boolean("is_practice").notNull().default(false),
     defaultPrice: units("default_price").notNull().default("1000000"),
+    defaultValidityHours: integer("default_validity_hours").notNull().default(24),
+    /** Pay-if-works pricing; only allowed once the provider is out of probation (≥ 30 settled). */
+    payIfWorks: boolean("pay_if_works").notNull().default(false),
     bondToken: text("bond_token"),
     bondTotal: units("bond_total").notNull().default("0"),
     bondLocked: units("bond_locked").notNull().default("0"),
@@ -257,6 +260,11 @@ export const agents = pgTable("agents", {
   providerId: integer("provider_id").references(() => providers.id),
   name: text("name").notNull(),
   wallet: text("wallet"),
+  /** Agent wallet private key, sealed with the master key (user-created execution agents). */
+  walletKeyEnc: bytea("wallet_key_enc"),
+  /** Agent encryption key pair (private sealed). Keys for agent purchases are wrapped to `encPubkey`. */
+  encKeyEnc: bytea("enc_key_enc"),
+  encPubkey: text("enc_pubkey"),
   /** execution | strategy | aggregator */
   type: text("type").notNull(),
   policyJson: jsonb("policy_json").$type<AgentPolicy>().notNull().default({} as AgentPolicy),
@@ -271,6 +279,9 @@ export interface AgentPolicy {
   maxPerSignal?: string;
   minScore?: number;
   markets?: string[];
+  /** Provider handles; empty = any. */
+  providersAllow?: string[];
+  providersDeny?: string[];
   autoTrade?: boolean;
   slippageBps?: number;
 }

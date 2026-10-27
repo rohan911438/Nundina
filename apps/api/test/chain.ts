@@ -36,7 +36,7 @@ async function clearChainRows() {
   await rawSql()`delete from relayed_txs`;
 }
 
-export const ROOT = join(__dirname, "..", "..", "..");
+export const ROOT = join(import.meta.dirname, "..", "..", "..");
 const bin = (n: string) => join(homedir(), ".foundry", "bin", process.platform === "win32" ? `${n}.exe` : n);
 
 export function rootEnv(): Record<string, string> {
@@ -55,7 +55,8 @@ export const canRunChain =
   existsSync(bin("anvil")) && Boolean(keys.DEPLOYER_PRIVATE_KEY && keys.RELAYER_PRIVATE_KEY && keys.CREDIT_SIGNER_PRIVATE_KEY);
 
 async function launch() {
-  const port = 18_000 + Math.floor(Math.random() * 2_000);
+  // ANVIL_PORT pins the port (the web e2e stack needs 8545, the browser default)
+  const port = Number(process.env.ANVIL_PORT) || 18_000 + Math.floor(Math.random() * 2_000);
   const rpc = `http://127.0.0.1:${port}`;
   const anvil: ChildProcess = spawn(bin("anvil"), ["--port", String(port), "--chain-id", "31337", "--silent"], { stdio: "ignore" });
   const kill = () => {

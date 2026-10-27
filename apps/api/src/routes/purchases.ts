@@ -130,7 +130,8 @@ export const purchaseRoutes = new Hono<AppEnv>()
     }
 
     const buyer = await db().query.users.findFirst({ where: eq(users.id, a.userId!) });
-    if (!buyer?.pubkey) throw conflict("no_encryption_key", "Register an encryption key first (POST /me/encryption-key)");
+    const agent = a.agentId ? await db().query.agents.findFirst({ where: eq(agents.id, a.agentId) }) : undefined;
+    if (!(agent?.encPubkey ?? buyer?.pubkey)) throw conflict("no_encryption_key", "Register an encryption key first (POST /me/encryption-key)");
 
     // Capacity: every credited subscriber locks `price` of the provider's bond.
     const paid = await db()
