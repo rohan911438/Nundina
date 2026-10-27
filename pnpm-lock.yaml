@@ -21,6 +21,114 @@ importers:
         specifier: 4.1.12
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  agents/aggregator:
+    dependencies:
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  agents/core:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: 1.3.0
+        version: 1.3.0(zod@4.6.7)
+      '@nundina/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      viem:
+        specifier: 2.57.11
+        version: 2.57.11(typescript@5.9.3)(zod@4.6.7)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  agents/execution:
+    dependencies:
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  agents/strategy-funding:
+    dependencies:
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  agents/strategy-momentum:
+    dependencies:
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  agents/strategy-sentiment:
+    dependencies:
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   apps/api:
     dependencies:
       '@hono/node-server':
@@ -186,6 +294,12 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
     devDependencies:
+      '@hono/node-server':
+        specifier: 2.1.5
+        version: 2.1.5(hono@4.13.14)
+      '@nundina/agents-core':
+        specifier: workspace:*
+        version: link:../../agents/core
       '@nundina/api':
         specifier: workspace:*
         version: link:../api
@@ -224,7 +338,7 @@ importers:
         version: 1.8.14(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(zod@3.25.76)
       '@reown/appkit-adapter-wagmi':
         specifier: 1.8.14
-        version: 1.8.14(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@types/react@19.3.0)(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))(wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(zod@3.25.76)
+        version: 1.8.14(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@types/react@19.3.0)(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))(wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(zod@3.25.76)
       '@tanstack/react-query':
         specifier: 5.104.2
         version: 5.104.2(react@19.3.0)
@@ -260,10 +374,10 @@ importers:
         version: 3.7.0
       viem:
         specifier: 2.57.11
-        version: 2.57.11(typescript@5.9.3)(zod@4.6.7)
+        version: 2.57.11(typescript@5.9.3)(zod@3.25.76)
       wagmi:
         specifier: 3.7.7
-        version: 3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
+        version: 3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
     devDependencies:
       '@playwright/test':
         specifier: 1.64.0
@@ -5070,7 +5184,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@reown/appkit-adapter-wagmi@1.8.14(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@types/react@19.3.0)(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))(wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(zod@3.25.76)':
+  '@reown/appkit-adapter-wagmi@1.8.14(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@types/react@19.3.0)(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))(wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(zod@3.25.76)':
     dependencies:
       '@reown/appkit': 1.8.14(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(zod@3.25.76)
       '@reown/appkit-common': 1.8.14(typescript@5.9.3)(zod@3.25.76)
@@ -5079,13 +5193,13 @@ snapshots:
       '@reown/appkit-scaffold-ui': 1.8.14(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(valtio@2.1.7(@types/react@19.3.0)(react@19.3.0))(zod@3.25.76)
       '@reown/appkit-utils': 1.8.14(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(valtio@2.1.7(@types/react@19.3.0)(react@19.3.0))(zod@3.25.76)
       '@reown/appkit-wallet': 1.8.14(typescript@5.9.3)
-      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
+      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
       '@walletconnect/universal-provider': 2.23.0(typescript@5.9.3)(zod@3.25.76)
       valtio: 2.1.7(@types/react@19.3.0)(react@19.3.0)
-      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
-      wagmi: 3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
+      viem: 2.57.11(typescript@5.9.3)(zod@3.25.76)
+      wagmi: 3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
     optionalDependencies:
-      '@wagmi/connectors': 8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
+      '@wagmi/connectors': 8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6223,20 +6337,20 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.2.0
 
-  '@wagmi/connectors@8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))':
+  '@wagmi/connectors@8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))':
     dependencies:
-      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
-      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
+      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
+      viem: 2.57.11(typescript@5.9.3)(zod@3.25.76)
     optionalDependencies:
       '@safe-global/safe-apps-provider': 0.18.6(typescript@5.9.3)(zod@3.25.76)
       '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@3.25.76)
       typescript: 5.9.3
 
-  '@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))':
+  '@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))':
     dependencies:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.9.3)
-      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
+      viem: 2.57.11(typescript@5.9.3)(zod@3.25.76)
       zustand: 5.0.0(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.4.0(react@19.3.0))
     optionalDependencies:
       '@tanstack/query-core': 5.104.2
@@ -8331,14 +8445,14 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)):
+  wagmi@3.7.7(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@tanstack/query-core@5.104.2)(@tanstack/react-query@5.104.2(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)):
     dependencies:
       '@tanstack/react-query': 5.104.2(react@19.3.0)
-      '@wagmi/connectors': 8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
-      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@4.6.7))
+      '@wagmi/connectors': 8.2.0(@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76))(@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76))(@wagmi/core@3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76)))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
+      '@wagmi/core': 3.6.5(@tanstack/query-core@5.104.2)(@types/react@19.3.0)(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.3.0))(viem@2.57.11(typescript@5.9.3)(zod@3.25.76))
       react: 19.3.0
       use-sync-external-store: 1.4.0(react@19.3.0)
-      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
+      viem: 2.57.11(typescript@5.9.3)(zod@3.25.76)
     optionalDependencies:
       typescript: 5.9.3
     transitivePeerDependencies:

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { createSiweMessage } from "viem/siwe";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { closeDb, db } from "../src/db/client.js";
-import { users } from "../src/db/schema.js";
+import { agents, users } from "../src/db/schema.js";
 import { signInitData } from "../src/auth/telegram.js";
 import { userIdForTelegram } from "../src/auth/internal.js";
 import { app, getJson, INTERNAL, postJson } from "./helpers.js";
@@ -94,5 +94,45 @@ describe("/agents", () => {
     const created = await req("POST", "/agents", { cookie: a.cookie }, {});
     expect((await req("GET", `/agents/${created.body.agent.id}`, { cookie: b.cookie })).status).toBe(403);
     expect((await req("GET", "/agents", {})).status).toBe(401);
+  });
+});
+
+describe("internal agent runtime routes", () => {
+  it("registers our own provider agent idempotently, acts as it, and tracks spend by UTC day", async () => {
+    const wallet = privateKeyToAccount(generatePrivateKey()).address;
+    const handle = `bot_${Date.now() % 1_000_000}`;
+    const body = { name: `strat-${handle}`, type: "strategy", wallet, provider: { handle, displayName: "Bot", defaultPriceUsd: "0.25" } };
+    const a = await req("POST", "/internal/agents/register", INTERNAL, body);
+    expect(a.status).toBe(201);
+    expect(a.body.providerId).toBeGreaterThan(0);
+    const again = await req("POST", "/internal/agents/register", INTERNAL, body);
+    expect(again.status).toBe(200);
+    expect(again.body.agent.id).toBe(a.body.agent.id);
+    expect(again.body.providerId).toBe(a.body.providerId);
+    expect((await getJson(`/providers/${handle}`)).body.kind).toBe("agent");
+
+    // act as the agent: the agent row's owner and wallet
+    const asAgent = { ...INTERNAL, "x-act-as-agent": String(a.body.agent.id) };
+    const me = await req("GET", `/agents/${a.body.agent.id}`, asAgent);
+    expect(me.body.wallet).toBe(wallet.toLowerCase());
+    const d = await req("POST", "/drafts", asAgent, { rawText: "BTC LONG", parser: "agent" });
+    expect(d.status).toBe(201);
+    const secrets = await req("GET", `/internal/agents/${a.body.agent.id}/secrets`, INTERNAL);
+    expect(secrets.body.encKey).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(secrets.body.walletKey).toBeNull(); // our agents keep their wallet key in env
+
+    // spend counter
+    const s1 = await req("POST", `/internal/agents/${a.body.agent.id}/spend`, INTERNAL, { amount: "300000" });
+    const s2 = await req("POST", `/internal/agents/${a.body.agent.id}/spend`, INTERNAL, { amount: "200000" });
+    expect(s1.body.spentTodayUsd).toBe("0.3");
+    expect(s2.body.spentTodayUsd).toBe("0.5");
+    await db().update(agents).set({ spentDay: "2000-01-01" }).where(eq(agents.id, a.body.agent.id));
+    expect((await req("GET", `/agents/${a.body.agent.id}`, asAgent)).body.spentTodayUsd).toBe("0");
+    const s3 = await req("POST", `/internal/agents/${a.body.agent.id}/spend`, INTERNAL, { amount: "100000" });
+    expect(s3.body.spentTodayUsd).toBe("0.1");
+
+    // logs a route decision; refuses without the internal secret
+    expect((await req("POST", `/agents/${a.body.agent.id}/activity`, asAgent, { decision: "route", reason: "WIN routed" })).status).toBe(201);
+    expect((await req("POST", "/internal/agents/register", {}, body)).status).toBe(403);
   });
 });

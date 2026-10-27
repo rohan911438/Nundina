@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from "hono";
 import { eq } from "drizzle-orm";
 import { env } from "../env.js";
 import { db } from "../db/client.js";
-import { users } from "../db/schema.js";
+import { agents, users } from "../db/schema.js";
 import { timingSafeEqualHex } from "../lib/crypto.js";
 import { log } from "../lib/log.js";
 import type { AppEnv, Auth } from "./context.js";
@@ -37,7 +37,12 @@ export const authenticate: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (timingSafeEqualHex(internal, env().INTERNAL_SECRET)) {
       auth = { kind: "internal" };
       const actAs = Number(c.req.header("x-act-as-user"));
-      if (actAs) {
+      const actAsAgent = Number(c.req.header("x-act-as-agent"));
+      if (actAsAgent) {
+        // agent runtime: pays from the agent wallet, keys wrap to the agent's encryption key
+        const ag = await db().query.agents.findFirst({ where: eq(agents.id, actAsAgent) });
+        if (ag?.ownerUserId) auth = { kind: "internal", userId: ag.ownerUserId, agentId: ag.id, wallet: ag.wallet ?? undefined };
+      } else if (actAs) {
         const u = await db().query.users.findFirst({ where: eq(users.id, actAs) });
         if (u) auth = { kind: "internal", userId: u.id, wallet: u.wallet ?? undefined, telegramId: u.telegramId ?? undefined };
       }

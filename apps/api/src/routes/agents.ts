@@ -5,11 +5,12 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { z } from "zod";
 import { fromUnits, generateEncryptionKey, toUnits } from "@nundina/shared";
 import { db } from "../db/client.js";
-import { agentActions, agents, type AgentPolicy } from "../db/schema.js";
+import { agentActions, agents, providers, type AgentPolicy } from "../db/schema.js";
 import { getAuth, requireInternal, requireUser, type AppEnv, type Auth } from "../auth/context.js";
 import { createApiKey } from "../auth/apiKey.js";
 import { seal, unseal } from "../keys/masterKey.js";
-import { badRequest, forbidden, notFound } from "../lib/errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
+import { userIdForWallet } from "../auth/siwe.js";
 
 const strip = (h: string) => (h.startsWith("0x") ? h.slice(2) : h);
 
@@ -26,11 +27,29 @@ const PolicyBody = z.object({
 });
 const CreateBody = z.object({ name: z.string().min(1).max(60).default("Execution agent"), policy: PolicyBody.default({}) });
 const ActivityBody = z.object({
-  decision: z.enum(["buy", "skip", "post", "trade", "error"]),
+  decision: z.enum(["buy", "skip", "post", "trade", "route", "error"]),
   reason: z.string().max(2000).optional(),
   signalId: z.union([z.string().regex(/^\d+$/), z.number().int()]).optional(),
   purchaseId: z.uuid().optional(),
   fill: z.record(z.string(), z.unknown()).optional(),
+});
+
+const RegisterBody = z.object({
+  name: z.string().min(1).max(60),
+  type: z.enum(["strategy", "aggregator", "execution"]),
+  /** Defaults to the user that owns `wallet` (created if new): our agents are their own users. */
+  ownerUserId: z.number().int().positive().optional(),
+  wallet: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  policy: PolicyBody.optional(),
+  /** Strategy / aggregator agents: the provider profile to create for the owner if it has none. */
+  provider: z
+    .object({
+      handle: z.string().regex(/^[a-z0-9_]{3,32}$/),
+      displayName: z.string().min(1).max(64),
+      bio: z.string().max(280).optional(),
+      defaultPriceUsd: z.string().regex(/^\d+(\.\d{1,6})?$/).default("0.25"),
+    })
+    .optional(),
 });
 
 function toPolicy(b: z.infer<typeof PolicyBody>, prev: AgentPolicy = {}): AgentPolicy {
@@ -63,7 +82,8 @@ export function agentView(a: AgentRow) {
       autoTrade: p.autoTrade ?? false,
       slippageBps: p.slippageBps ?? 50,
     },
-    spentTodayUsd: fromUnits(BigInt(a.spentToday)),
+    // the counter only counts for the UTC day it was written on
+    spentTodayUsd: fromUnits(a.spentDay === new Date().toISOString().slice(0, 10) ? BigInt(a.spentToday) : 0n),
     createdAt: a.createdAt.toISOString(),
   };
 }
@@ -182,6 +202,74 @@ export const agentRoutes = new Hono<AppEnv>()
       walletKey: ag.walletKeyEnc ? `0x${bytesToHex(unseal(ag.walletKeyEnc))}` : null,
       encKey: ag.encKeyEnc ? `0x${bytesToHex(unseal(ag.encKeyEnc))}` : null,
     });
+  })
+  /**
+   * Our own strategy / aggregator agents: an agent row for the provider that `ownerUserId` owns,
+   * keyed by name (idempotent). The wallet is the agent's own env key; we generate its encryption key.
+   */
+  .post("/internal/agents/register", requireInternal, async (c) => {
+    const body = RegisterBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", body.error.issues.map((i) => i.message).join("; "));
+    const b = body.data;
+    const ownerUserId = b.ownerUserId ?? (await userIdForWallet(b.wallet));
+    let providerId: number | undefined;
+    if (b.provider) {
+      const mine = await db().query.providers.findFirst({ where: eq(providers.userId, ownerUserId) });
+      if (mine) providerId = mine.id;
+      else {
+        const taken = await db().query.providers.findFirst({ where: eq(providers.handle, b.provider.handle) });
+        if (taken) throw conflict("handle_taken", "Handle is taken");
+        const [p] = await db()
+          .insert(providers)
+          .values({
+            userId: ownerUserId,
+            handle: b.provider.handle,
+            displayName: b.provider.displayName,
+            bio: b.provider.bio,
+            address: b.wallet.toLowerCase(),
+            payoutAddr: b.wallet.toLowerCase(),
+            kind: b.type === "aggregator" ? "aggregator" : "agent",
+            isAgent: true,
+            defaultPrice: toUnits(b.provider.defaultPriceUsd).toString(),
+          })
+          .returning();
+        providerId = p!.id;
+      }
+    }
+    const existing = await db().query.agents.findFirst({ where: and(eq(agents.name, b.name), eq(agents.ownerUserId, ownerUserId)) });
+    if (existing) {
+      if (providerId && existing.providerId !== providerId) await db().update(agents).set({ providerId }).where(eq(agents.id, existing.id));
+      return c.json({ agent: agentView(existing), ownerUserId, providerId: providerId ?? existing.providerId });
+    }
+    const enc = generateEncryptionKey();
+    const [ag] = await db()
+      .insert(agents)
+      .values({
+        ownerUserId,
+        providerId,
+        name: b.name,
+        type: b.type,
+        wallet: b.wallet.toLowerCase(),
+        encKeyEnc: seal(hexToBytes(strip(enc.privateKey))),
+        encPubkey: enc.publicKey.toLowerCase(),
+        policyJson: toPolicy(b.policy ?? {}),
+      })
+      .returning();
+    return c.json({ agent: agentView(ag!), ownerUserId, providerId: providerId ?? null }, 201);
+  })
+  /** Records a spend against today's budget; the counter resets at UTC midnight. */
+  .post("/internal/agents/:id/spend", requireInternal, async (c) => {
+    const ag = await ownAgent(c.req.param("id"), getAuth(c));
+    const body = z.object({ amount: z.string().regex(/^\d+$/) }).safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", "amount (6-dec units) required");
+    const today = new Date().toISOString().slice(0, 10);
+    const base = ag.spentDay === today ? BigInt(ag.spentToday) : 0n;
+    const [u] = await db()
+      .update(agents)
+      .set({ spentToday: (base + BigInt(body.data.amount)).toString(), spentDay: today })
+      .where(eq(agents.id, ag.id))
+      .returning();
+    return c.json(agentView(u!));
   })
   .get("/internal/agents", requireInternal, async (c) => {
     const type = c.req.query("type") ?? "execution";
