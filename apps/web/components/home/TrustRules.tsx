@@ -1,4 +1,6 @@
 import { BarChart3, Coins, Lock, Receipt, ShieldCheck, Undo2, Users } from "lucide-react";
+import type { CSSProperties } from "react";
+import { Reveal } from "@/components/motion/Reveal";
 import { SectionHead } from "./SectionHead";
 
 /** The 7 trust rules (README, Idea/01 §1.5). */
@@ -26,7 +28,7 @@ export const TRUST_RULES = [
 
 export function TrustRules() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+    <Reveal as="section" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
       <SectionHead
         eyebrow="Why traders can trust it"
         title={
@@ -39,7 +41,8 @@ export function TrustRules() {
         {TRUST_RULES.map((t, i) => (
           <li
             key={t.title}
-            className={`group rounded-2xl border border-border bg-surface p-6 transition-colors hover:border-accent/40 ${i === 0 || i === TRUST_RULES.length - 1 ? "lg:col-span-2" : ""}`}
+            style={{ "--i": i } as CSSProperties}
+            className={`reveal-child group rounded-2xl border border-border bg-surface p-6 transition-[border-color,box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_18px_40px_-24px_var(--glow)] ${i === 0 || i === TRUST_RULES.length - 1 ? "lg:col-span-2" : ""}`}
           >
             <t.Icon aria-hidden className="size-5 text-accent transition-transform duration-300 group-hover:-translate-y-0.5" />
             <h3 className="mt-6 font-semibold">{t.title}</h3>
@@ -47,6 +50,6 @@ export function TrustRules() {
           </li>
         ))}
       </ul>
-    </section>
+    </Reveal>
   );
 }

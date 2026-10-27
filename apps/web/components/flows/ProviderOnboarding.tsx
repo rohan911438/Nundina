@@ -213,11 +213,15 @@ function Checklist() {
               Get link code
             </Button>
           )}
-          <Button asChild variant="ghost">
-            <a href={`https://t.me/${config.botUsername}?start=link_channel`} target="_blank" rel="noreferrer noopener">
-              <Send aria-hidden /> Open the bot
-            </a>
-          </Button>
+          {config.botUsername ? (
+            <Button asChild variant="ghost">
+              <a href={`https://t.me/${config.botUsername}?start=link_channel`} target="_blank" rel="noreferrer noopener">
+                <Send aria-hidden /> Open the bot
+              </a>
+            </Button>
+          ) : (
+            <p className="text-xs text-muted">The Telegram bot isn't connected on this deployment yet.</p>
+          )}
         </section>
       ) : null}
 

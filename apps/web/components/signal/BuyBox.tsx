@@ -42,11 +42,13 @@ export function BuyBox({ signal }: { signal: ApiSignalDetail }) {
       <Button variant="accent" size="lg" className="mt-5 w-full" onClick={() => setOpen(true)} data-testid="buy-wallet">
         <Wallet aria-hidden /> Buy with wallet
       </Button>
-      <Button asChild variant="outline" size="lg" className="mt-2 w-full">
-        <a href={`https://t.me/${config.botUsername}?start=buy_${signal.id}`} target="_blank" rel="noreferrer noopener">
-          <Send aria-hidden /> Buy in Telegram
-        </a>
-      </Button>
+      {config.botUsername ? (
+        <Button asChild variant="outline" size="lg" className="mt-2 w-full">
+          <a href={`https://t.me/${config.botUsername}?start=buy_${signal.id}`} target="_blank" rel="noreferrer noopener">
+            <Send aria-hidden /> Buy in Telegram
+          </a>
+        </Button>
+      ) : null}
       <p className="mt-3 text-center text-xs text-muted">Paid through HSP · key delivered instantly</p>
     </div>
   );

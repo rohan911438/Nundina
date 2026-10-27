@@ -45,7 +45,7 @@ exports[`cards > locked (paid and free) 1`] = `
       },
       {
         "text": "Proof",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -59,7 +59,7 @@ exports[`cards > results > expiry loss 1`] = `
     [
       {
         "text": "View signal",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -74,7 +74,7 @@ exports[`cards > results > loss 1`] = `
     [
       {
         "text": "View signal",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -89,7 +89,7 @@ exports[`cards > results > unrevealed 1`] = `
     [
       {
         "text": "View signal",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -104,7 +104,7 @@ exports[`cards > results > void 1`] = `
     [
       {
         "text": "View signal",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -119,7 +119,7 @@ exports[`cards > results > win 1`] = `
     [
       {
         "text": "View signal",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],
@@ -157,7 +157,7 @@ exports[`cards > unlocked and buy 2`] = `
       },
       {
         "text": "Proof",
-        "url": "https://app.test/signal/42",
+        "url": "https://app.test/s/42",
       },
     ],
   ],

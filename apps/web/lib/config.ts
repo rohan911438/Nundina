@@ -8,7 +8,8 @@ export const config = {
   publicApiUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 133),
-  botUsername: process.env.NEXT_PUBLIC_BOT_USERNAME ?? "NundinaBot",
+  /** Our bot (@BotFather). Empty hides every Telegram link rather than pointing at someone else's bot. */
+  botUsername: (process.env.NEXT_PUBLIC_BOT_USERNAME ?? "").replace(/^@/, ""),
   githubUrl: process.env.NEXT_PUBLIC_GITHUB_URL ?? "https://github.com/nundina",
   /** HSP payment explorer; TODO(confirm) with HSP organizers. Without it payment ids show as text. */
   hspExplorerUrl: process.env.NEXT_PUBLIC_HSP_EXPLORER_URL ?? "",

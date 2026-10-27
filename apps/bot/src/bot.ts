@@ -2,6 +2,7 @@ import { Bot, MemorySessionStorage, session, type StorageAdapter } from "grammy"
 import type { UserFromGetMe } from "grammy/types";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { limit } from "@grammyjs/ratelimiter";
+import { dropUnusableButtons } from "./buttons.js";
 import type { Ctx, Deps, SessionData } from "./context.js";
 import { callbackHandlers } from "./handlers/callbacks.js";
 import { channelPostHandlers } from "./handlers/channelPost.js";
@@ -17,6 +18,7 @@ export function createBot(
 ) {
   const bot = new Bot<Ctx>(token, { botInfo: opts.botInfo });
   bot.api.config.use(autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 30 }));
+  bot.api.config.use(dropUnusableButtons((msg, extra) => deps.log("warn", msg, extra)));
 
   // per-user rate limit on private chats; channel posts are never limited
   bot.use(

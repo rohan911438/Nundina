@@ -1,10 +1,11 @@
 import { ArrowUpRight } from "lucide-react";
 import { config } from "@/lib/config";
+import { Reveal } from "@/components/motion/Reveal";
 import { SectionHead } from "./SectionHead";
 
 export function ForAgents() {
   return (
-    <section id="agents" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
+    <Reveal as="section" id="agents" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
       <div className="grid gap-10 overflow-hidden rounded-3xl border border-border bg-surface p-6 sm:p-10 lg:grid-cols-2 lg:items-center">
         <div>
           <SectionHead eyebrow="For agents" title="Your agent can buy signals too" />
@@ -32,6 +33,6 @@ export function ForAgents() {
           </pre>
         </figure>
       </div>
-    </section>
+    </Reveal>
   );
 }

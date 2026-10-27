@@ -229,8 +229,8 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
             const done = STAGE_RANK[stage] >= STAGE_RANK[s.key];
             const active = STAGE_RANK[stage] + 1 === STAGE_RANK[s.key];
             return (
-              <li key={s.key} className={cn("flex items-center gap-2", !done && !active && "text-muted")}>
-                {done ? <Check aria-hidden className="size-4 text-win" /> : active ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <span className="size-4" />}
+              <li key={s.key} className={cn("flex items-center gap-2 transition-colors duration-300", !done && !active && "text-muted")}>
+                {done ? <Check aria-hidden className="stage-in size-4 text-win" /> : active ? <Loader2 aria-hidden className="size-4 animate-spin text-accent" /> : <span className="size-4 rounded-full border border-border" />}
                 <span>{s.label}</span>
                 {s.key === "verifying" && p?.paymentId ? (
                   <ExternalLink href={explorer.hsp(p.paymentId)} className="ml-auto text-xs text-muted" label="HSP payment">

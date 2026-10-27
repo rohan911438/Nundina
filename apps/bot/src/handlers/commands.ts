@@ -95,7 +95,7 @@ export function commandHandlers(deps: Deps) {
 
   pm.command("agent", async (ctx) => {
     const a = await deps.api.myAgent(ctx.session.userId!);
-    if (!a) return ctx.reply(en.agentNone, { reply_markup: new InlineKeyboard().url("Set up", webUrl(deps.links, "/dashboard/agent")) });
+    if (!a) return ctx.reply(en.agentNone, { reply_markup: new InlineKeyboard().url("Set up", webUrl(deps.links, "/dashboard/agents")) });
     return ctx.reply(en.agentStatus({ status: a.status, spent: a.spentTodayUsd, cap: a.dailyCapUsd }), html);
   });
 
