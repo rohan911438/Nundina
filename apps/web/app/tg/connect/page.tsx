@@ -2,9 +2,10 @@
 
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { WalletGate } from "@/components/flows/WalletGate";
 import { short } from "@/lib/format";
-import { useMainButton, useTelegram } from "@/lib/telegram";
+import { haptic, useMainButton, useTelegram } from "@/lib/telegram";
 import { useWallet } from "@/lib/wallet/useWallet";
 
 /** Links the Telegram account to a wallet: SIWE carries initData, so the API ties the two together. */
@@ -23,8 +24,9 @@ function Linked() {
   const w = useWallet();
   const tg = useTelegram();
   useMainButton(tg.inTelegram ? "Done" : null, tg.close);
+  useEffect(() => haptic.success(), []);
   return (
-    <div className="rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="connected">
+    <div className="rise rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="connected">
       <p className="flex items-center gap-2 font-medium text-win">
         <Check aria-hidden className="size-5" /> Wallet linked
       </p>

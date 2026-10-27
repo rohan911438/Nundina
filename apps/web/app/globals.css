@@ -339,5 +339,8 @@ body:has([data-tg-app]) > footer {
 [data-tg-app] {
   --tg-bg: var(--tg-theme-bg-color, var(--bg));
   background: var(--tg-bg);
-  min-height: 100dvh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  /* clear the notch / Telegram header in fullscreen mode */
+  padding-top: calc(1rem + var(--tg-viewport-content-safe-area-inset-top, 0px) + var(--tg-viewport-safe-area-inset-top, 0px));
+  padding-bottom: calc(6rem + var(--tg-viewport-safe-area-inset-bottom, 0px));
 }
