@@ -29,6 +29,27 @@
       "when": 1793026306040,
       "tag": "0003_bot",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793095385430,
+      "tag": "0004_agents_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793097239238,
+      "tag": "0005_provider_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793108410783,
+      "tag": "0006_agent_credits",
+      "breakpoints": true
     }
   ]
 }

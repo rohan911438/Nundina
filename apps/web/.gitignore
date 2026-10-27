@@ -2,3 +2,4 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 next-env.d.ts
+e2e/.stack.json

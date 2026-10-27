@@ -7,7 +7,8 @@
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "start": "tsx --env-file-if-exists=../../.env src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "demo:aggregator": "tsx scripts/demo-aggregator.ts"
   },
   "dependencies": {
     "@nundina/shared": "workspace:*",
@@ -15,6 +16,8 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@hono/node-server": "2.1.5",
+    "@nundina/agents-core": "workspace:*",
     "@nundina/api": "workspace:*",
     "@types/node": "24.19.2",
     "drizzle-orm": "0.45.4",

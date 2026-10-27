@@ -13,6 +13,7 @@ import { providerRoutes } from "./routes/providers.js";
 import { publicRoutes } from "./routes/public.js";
 import { purchaseRoutes } from "./routes/purchases.js";
 import { keeperRoutes } from "./routes/keeper.js";
+import { agentRoutes } from "./routes/agents.js";
 import { telegramRoutes } from "./routes/telegram.js";
 
 /** Builds the Hono app (no server; `index.ts` serves it, tests call `app.request`). */
@@ -54,6 +55,7 @@ export function createApp() {
   app.route("/", purchaseRoutes);
   app.route("/", telegramRoutes);
   app.route("/", keeperRoutes);
+  app.route("/", agentRoutes);
 
   app.doc31("/openapi.json", {
     openapi: "3.1.0",

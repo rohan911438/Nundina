@@ -3,4 +3,6 @@ packages:
   - packages/*
   - agents/*
 allowBuilds:
+  # postinstall is only a version check
+  '@reown/appkit': false
   esbuild: true

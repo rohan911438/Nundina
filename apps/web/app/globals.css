@@ -180,3 +180,35 @@
     animation: none;
   }
 }
+
+/* form fields (wallet flows, dashboards) */
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0.625rem 0.875rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .input:disabled {
+    opacity: 0.6;
+  }
+}
+
+/* Telegram Mini App: no site chrome, Telegram's theme colours when present */
+body:has([data-tg-app]) > header,
+body:has([data-tg-app]) > footer {
+  display: none;
+}
+[data-tg-app] {
+  --tg-bg: var(--tg-theme-bg-color, var(--bg));
+  background: var(--tg-bg);
+  min-height: 100dvh;
+}

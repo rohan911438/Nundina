@@ -121,7 +121,7 @@ export default async function SignalPage({ params }: Props) {
           ) : null}
         </div>
         <aside className="space-y-4">
-          {live ? <BuyBox id={s.id} priceUsd={s.priceUsd} validUntil={s.validUntil} purchaseCount={s.purchaseCount} /> : null}
+          {live ? <BuyBox signal={s} /> : null}
           <Card>
             <CardHeader>
               <CardTitle>Proof</CardTitle>

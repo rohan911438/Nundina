@@ -5,13 +5,13 @@ import { z } from "zod";
 import { fromUnits, toUnits } from "@nundina/shared";
 import { identityRegistryAbi } from "@nundina/shared/abis";
 import { db } from "../db/client.js";
-import { providerScores, providers, signalDrafts, signals, telegramLinkCodes } from "../db/schema.js";
+import { providerScores, providers, settlements, signalDrafts, signals, telegramLinkCodes } from "../db/schema.js";
 import { env } from "../env.js";
 import { getAuth, requireInternal, requireUser, type AppEnv } from "../auth/context.js";
 import { addr } from "../chain/clients.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { bytesToHex, randomBytes } from "../lib/crypto.js";
-import { publicProvider, publicSignal, scoreView } from "../lib/serialize.js";
+import { PROBATION_N, publicProvider, publicSignal, scoreView } from "../lib/serialize.js";
 
 const LINK_CODE_TTL_MS = 15 * 60 * 1000;
 
@@ -27,6 +27,13 @@ const RegisterBody = z.object({
   practice: z.boolean().default(false),
   defaultPrice: z.string().regex(/^\d+(\.\d{1,6})?$/).default("1"),
   telegramHandle: z.string().optional(),
+});
+
+const SettingsBody = z.object({
+  defaultPrice: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
+  defaultValidityHours: z.number().int().min(1).max(168).optional(),
+  payIfWorks: z.boolean().optional(),
+  practice: z.boolean().optional(),
 });
 
 const LinkBody = z.object({
@@ -45,7 +52,8 @@ export async function myProvider(userId: number | undefined) {
 
 /** Calldata the provider wallet signs to register on-chain (ERC-8004 identity, then ProviderRegistry). */
 function registrationTxs(handle: string, payout: Address, practice: boolean, tgHandle?: string) {
-  const agentUri = `${env().PUBLIC_API_URL}/providers/${handle}/agent.json`;
+  // ERC-8004 agent card, served by the web app (apps/web/app/api/agent-card)
+  const agentUri = `${env().WEB_ORIGIN.split(",")[0]!.trim()}/api/agent-card/${handle}`;
   const tgHash = keccak256(toBytes(tgHandle ?? `@${handle}`));
   let identity: Address | null = null;
   let registry: Address | null = null;
@@ -145,7 +153,7 @@ export const providerRoutes = new Hono<AppEnv>()
   })
   .get("/me/provider", requireUser, async (c) => {
     const p = await myProvider(getAuth(c).userId);
-    const [scores, recent, drafts, [counts]] = await Promise.all([
+    const [scores, recent, drafts, [counts], payouts] = await Promise.all([
       db().query.providerScores.findMany({ where: eq(providerScores.providerId, p.id) }),
       db().select().from(signals).where(eq(signals.providerId, p.id)).orderBy(desc(signals.id)).limit(20),
       db()
@@ -162,13 +170,46 @@ export const providerRoutes = new Hono<AppEnv>()
         })
         .from(signals)
         .where(eq(signals.providerId, p.id)),
+      db()
+        .select({ s: settlements })
+        .from(settlements)
+        .innerJoin(signals, eq(signals.id, settlements.signalId))
+        .where(eq(signals.providerId, p.id))
+        .orderBy(desc(settlements.settledAt))
+        .limit(200),
     ]);
+    let net = 0n;
+    let fees = 0n;
+    let slashed = 0n;
+    for (const { s } of payouts) {
+      net += BigInt(s.payout);
+      fees += BigInt(s.fee);
+      slashed += BigInt(s.slashTotal);
+    }
     const main = scores.find((s) => s.period === "30d" && s.market === "all");
     return c.json({
       provider: { ...publicProvider(p, main), payoutAddr: p.payoutAddr, channelId: p.channelId, linked: p.channelId != null },
+      settings: {
+        defaultPriceUsd: fromUnits(BigInt(p.defaultPrice)),
+        defaultValidityHours: p.defaultValidityHours,
+        practice: p.isPractice,
+        payIfWorks: p.payIfWorks,
+        // pay-if-works unlocks after probation (30 settled signals)
+        payIfWorksAllowed: (main?.n ?? 0) >= PROBATION_N,
+      },
       scores: scores.map((s) => ({ ...scoreView(s), market: s.market })),
       counts: counts ?? { live: 0, sales: 0, total: 0 },
       bond: { totalUsd: fromUnits(BigInt(p.bondTotal)), lockedUsd: fromUnits(BigInt(p.bondLocked)) },
+      // payout is net of the fee; gross = payout + fee
+      earnings: { grossUsd: fromUnits(net + fees), feesUsd: fromUnits(fees), slashedUsd: fromUnits(slashed), netUsd: fromUnits(net - slashed) },
+      payouts: payouts.slice(0, 20).map(({ s }) => ({
+        signalId: s.signalId.toString(),
+        outcome: s.outcome,
+        payoutUsd: fromUnits(BigInt(s.payout)),
+        slashUsd: fromUnits(BigInt(s.slashTotal)),
+        settleTx: s.settleTx,
+        settledAt: s.settledAt.toISOString(),
+      })),
       recentSignals: recent.map((s) => publicSignal(s, p)),
       drafts: drafts.map((d) => ({
         id: d.id,
@@ -178,5 +219,35 @@ export const providerRoutes = new Hono<AppEnv>()
         status: d.status,
         createdAt: d.createdAt.toISOString(),
       })),
+    });
+  })
+  .patch("/me/provider", requireUser, async (c) => {
+    const p = await myProvider(getAuth(c).userId);
+    const body = SettingsBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) throw badRequest("bad_body", body.error.issues.map((i) => i.message).join("; "));
+    const b = body.data;
+    if (b.payIfWorks) {
+      const main = await db().query.providerScores.findFirst({
+        where: and(eq(providerScores.providerId, p.id), eq(providerScores.period, "30d"), eq(providerScores.market, "all")),
+      });
+      if ((main?.n ?? 0) < PROBATION_N) throw conflict("probation", `Pay-if-works unlocks after ${PROBATION_N} settled signals`);
+    }
+    // practice can only be left (on-chain `leavePractice` is one-way), never re-entered
+    if (b.practice === true && !p.isPractice) throw conflict("practice_one_way", "A provider cannot go back to practice");
+    const [u] = await db()
+      .update(providers)
+      .set({
+        ...(b.defaultPrice != null ? { defaultPrice: toUnits(b.defaultPrice).toString() } : {}),
+        ...(b.defaultValidityHours != null ? { defaultValidityHours: b.defaultValidityHours } : {}),
+        ...(b.payIfWorks != null ? { payIfWorks: b.payIfWorks } : {}),
+        ...(b.practice === false ? { isPractice: false } : {}),
+      })
+      .where(eq(providers.id, p.id))
+      .returning();
+    return c.json({
+      defaultPriceUsd: fromUnits(BigInt(u!.defaultPrice)),
+      defaultValidityHours: u!.defaultValidityHours,
+      practice: u!.isPractice,
+      payIfWorks: u!.payIfWorks,
     });
   });

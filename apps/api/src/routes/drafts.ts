@@ -102,6 +102,20 @@ async function ownedDraft(id: number, auth: Auth) {
 }
 
 export const draftRoutes = new Hono<AppEnv>()
+  /** The Mini App confirm screen: parsed fields plus the provider's defaults. */
+  .get("/drafts/:id", requireUser, async (c) => {
+    const { draft, provider } = await ownedDraft(Number(c.req.param("id")), getAuth(c));
+    return c.json({
+      id: draft.id,
+      status: draft.status,
+      rawText: draft.rawText,
+      parsed: draft.parsedJson,
+      parser: draft.parser,
+      signalId: draft.signalId?.toString() ?? null,
+      provider: { handle: provider.handle, address: provider.address, defaultPrice: provider.defaultPrice, practice: provider.isPractice },
+      createdAt: draft.createdAt.toISOString(),
+    });
+  })
   .post("/drafts", async (c) => {
     const a = getAuth(c);
     const body = CreateDraftBody.safeParse(await c.req.json().catch(() => ({})));

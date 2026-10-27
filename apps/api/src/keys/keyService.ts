@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { deserializeSignal, serializeSignal, wrapKey, type Signal } from "@nundina/shared";
 import { db } from "../db/client.js";
-import { keyDeliveries, purchases, signals, users } from "../db/schema.js";
+import { agents, keyDeliveries, purchases, signals, users } from "../db/schema.js";
 import { ApiError, notFound } from "../lib/errors.js";
 import { aesDecrypt, aesEncrypt, randomBytes } from "../lib/crypto.js";
 import { seal, unseal, unsealHex } from "./masterKey.js";
@@ -45,12 +45,15 @@ export async function wrapKeyFor(purchaseId: string, channel: "web" | "telegram"
   if (existing) return existing;
   const p = await db().query.purchases.findFirst({ where: eq(purchases.id, purchaseId) });
   if (!p) throw notFound("Purchase");
+  // agent purchases are wrapped to the agent's own key, so the agent process can decrypt them
+  const agent = p.agentId ? await db().query.agents.findFirst({ where: eq(agents.id, p.agentId) }) : undefined;
   const buyer = p.buyerUserId ? await db().query.users.findFirst({ where: eq(users.id, p.buyerUserId) }) : undefined;
-  if (!buyer?.pubkey) throw new ApiError(409, "no_encryption_key", "Buyer has no registered encryption key");
+  const pubkey = agent?.encPubkey ?? buyer?.pubkey;
+  if (!pubkey) throw new ApiError(409, "no_encryption_key", "Buyer has no registered encryption key");
   const s = await db().query.signals.findFirst({ where: eq(signals.id, p.signalId) });
   if (!s?.aesKeyEnc) throw new ApiError(409, "no_key_material", "Signal has no key material");
 
-  const wrapped = wrapKey(buyer.pubkey, unseal(s.aesKeyEnc));
+  const wrapped = wrapKey(pubkey, unseal(s.aesKeyEnc));
   const [row] = await db()
     .insert(keyDeliveries)
     .values({ purchaseId, wrappedKey: wrapped, channel, deliveredAt: new Date() })

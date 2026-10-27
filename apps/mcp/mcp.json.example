@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nundina": {
+      "type": "http",
+      "url": "http://localhost:8791/mcp",
+      "headers": { "Authorization": "Bearer ${NUNDINA_API_KEY}" }
+    }
+  }
+}

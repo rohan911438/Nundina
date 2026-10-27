@@ -11,7 +11,7 @@ const NAV = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-bg/75 backdrop-blur-xl supports-[backdrop-filter]:bg-bg/60">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-bg/95 md:bg-bg/75 md:backdrop-blur-xl md:supports-[backdrop-filter]:bg-bg/60">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link href="/" aria-label="Nundina home" className="shrink-0">
           <Logo />
