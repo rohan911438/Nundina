@@ -9,6 +9,7 @@ const Env = z.object({
   RPC_URL: z.string().optional(),
   LOCAL_RPC_URL: z.string().optional(),
   HSK_TESTNET_RPC_URL: z.string().optional(),
+  HSK_RPC_URL: z.string().optional(),
   /** Kill switch for every agent process. */
   AGENTS_DISABLED: bool.default(false),
   ANTHROPIC_API_KEY: z.string().optional(),

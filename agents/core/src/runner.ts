@@ -80,6 +80,6 @@ export async function runStrategy(spec: StrategySpec) {
     if (bad) return log("skip", `proposal rejected: ${bad}`);
     await topUpBond(w, toUnits(env().AGENT_BOND_USD));
     const { signalId } = await commitProposal(api, w, p, { priceUsd: clampPrice(spec.priceUsd) });
-    await log("post", `${p.side} ${p.market} @ ${p.entry} TP ${p.takeProfit} SL ${p.stopLoss}, ${clampValidity(p.validHours)}h, $${clampPrice(spec.priceUsd)}: ${p.rationale}`, { signalId });
+    await log("post", `${p.side} ${p.market}, ${clampValidity(p.validHours)}h, ${clampPrice(spec.priceUsd)} (levels sealed until reveal)`, { signalId });
   });
 }

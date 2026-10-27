@@ -62,6 +62,8 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
     address public treasury;
     ICreditVerifier public creditVerifier;
     uint256 public feeBps = 1000;
+    /// @notice Per-signal subscriber cap (<= MAX_SUBSCRIBERS); 50 on the mainnet MVP.
+    uint256 public maxSubscribers = MAX_SUBSCRIBERS;
     mapping(address token => bool) public allowedToken;
 
     mapping(uint256 id => Pot) internal _pots;
@@ -88,6 +90,7 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
     error WrongToken();
     error AlreadyPaid();
     error TooManySubscribers();
+    error BadCap();
     error InsufficientFunds();
     error NotFinal();
     error NotOpen();
@@ -259,6 +262,12 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
         feeBps = bps;
     }
 
+    /// @notice Sets the per-signal subscriber cap (1..MAX_SUBSCRIBERS); applies to new credits only.
+    function setMaxSubscribers(uint256 cap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (cap == 0 || cap > MAX_SUBSCRIBERS) revert BadCap();
+        maxSubscribers = cap;
+    }
+
     /// @notice Sets where future protocol fees accrue.
     function setTreasury(address t) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (t == address(0)) revert ZeroAddress();
@@ -330,7 +339,7 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
             revert WrongToken();
         }
         if (paid[id][sub] != 0) revert AlreadyPaid();
-        if (pot.subs >= MAX_SUBSCRIBERS) revert TooManySubscribers();
+        if (pot.subs >= maxSubscribers) revert TooManySubscribers();
         if (IERC20(token).balanceOf(address(this)) < liabilities[token] + amount) revert InsufficientFunds();
 
         registry.lockBond(r.provider, pot.slashPerSub); // reverts when capacity is full

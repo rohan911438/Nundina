@@ -400,6 +400,19 @@ export const performanceEscrowAbi = [
   },
   {
     "type": "function",
+    "name": "maxSubscribers",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "paid",
     "inputs": [
       {
@@ -694,6 +707,19 @@ export const performanceEscrowAbi = [
     "inputs": [
       {
         "name": "bps",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMaxSubscribers",
+    "inputs": [
+      {
+        "name": "cap",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1297,6 +1323,11 @@ export const performanceEscrowAbi = [
   {
     "type": "error",
     "name": "AlreadyPaid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BadCap",
     "inputs": []
   },
   {

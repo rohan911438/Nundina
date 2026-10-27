@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx --env-file-if-exists=../../.env src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stage-demo": "tsx --env-file-if-exists=../../.env scripts/stage-demo.ts"
   },
   "dependencies": {
     "@nundina/agents-core": "workspace:*"

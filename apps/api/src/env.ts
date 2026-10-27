@@ -19,11 +19,18 @@ const EnvSchema = z.object({
   CREDIT_SIGNER_PRIVATE_KEY: optionalHex32,
   /** Minimum relayer balance (wei) before it refuses to send. Default 0.05 HSK. */
   RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
+  /** Monitoring (prompt 15): keeper wallet + alert threshold, other services' /health URLs, team chat for alerts. */
+  KEEPER_ADDRESS: optional,
+  KEEPER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
+  STATUS_SERVICES: optional,
+  ALERT_TELEGRAM_CHAT_ID: optional,
 
   KEY_SERVICE_MASTER_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/, "32-byte hex"),
   /** Previous master key during rotation (rows sealed with it still open). */
   KEY_SERVICE_MASTER_KEY_PREVIOUS: z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^[0-9a-fA-F]{64}$/).optional()),
   INTERNAL_SECRET: z.string().min(16),
+  /** Requests per minute per user/IP (auth endpoints get a tenth). 0 disables; off by default in tests. */
+  RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(process.env.NODE_ENV === "test" ? 0 : 300),
   SESSION_SECRET: optional,
   TELEGRAM_BOT_TOKEN: optional,
 

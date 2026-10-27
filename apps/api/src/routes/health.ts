@@ -42,7 +42,14 @@ export async function health() {
   };
 }
 
-export const healthRoutes = new Hono<AppEnv>().get("/health", async (c) => {
-  const h = await health();
-  return c.json(h, h.ok ? 200 : 503);
-});
+export const healthRoutes = new Hono<AppEnv>()
+  .get("/health", async (c) => {
+    const h = await health();
+    return c.json(h, h.ok ? 200 : 503);
+  })
+  /** Status page data: every monitored check (public; addresses and counts only). */
+  .get("/status", async (c) => {
+    const { checks } = await import("../services/monitor.js");
+    const cs = await checks();
+    return c.json({ ok: cs.every((x) => x.ok), checkedAt: new Date().toISOString(), checks: cs });
+  });

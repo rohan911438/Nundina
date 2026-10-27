@@ -26,6 +26,10 @@
 | Oct 24 | **Round 4** | Two questions: how to solve cold start, and how to future-proof. Studied Numerai, Bittensor SN8, Collective2, Fat Pig Signals, eToro, Hyperliquid vaults, Kaito, Myfxbook. | Free-first bootstrap; shadow leaderboard; our own strategy agents; ERC-8004; generic resolver |
 | Oct 24 | **Docs** | Wrote `Idea/` (10 docs + HSP guide) and the product README. Verified oracle and token addresses on mainnet. Commit `489281e`. | Spec frozen |
 | Oct 26 | **Planning** | Created `Memory/` (this folder) and `Architecture/` (pages, backend, contracts, integrations, SDKs). | Build plan ready |
+| Oct 26 | **Build 01–10** | Monorepo, all contracts with tests and a local deploy, API, payment rails (mock + live HSP), indexer and scoring, Telegram bot, keeper. | Full stack runs on anvil |
+| Oct 26–27 | **Build 11–12** | Web public pages, design system, OG images, wallet flows, dashboards, Telegram Mini App. Playwright wallet e2e passes. | Web done locally |
+| Oct 27 | **Build 13–14** | Three strategy agents, an execution agent, an aggregator with A2A payouts, and an MCP server (x402 / credits, delegated buys, ERC-8004). | Local A2A WIN with 3 `Routed` payouts |
+| Oct 27 | **Build 15 (hardening)** | Pre-mainnet security pass (Slither triage, credit-domain tests, mainnet caps, on-chain role checker), rate limits, monitoring and alerts, audit overrides, CI, README, TRACTION, demo runbook, deck outline. | Ready for mainnet once funded; launch, traction and submission wait on the user |
 
 ## Where the 8-day plan says we should be
-The plan in `Idea/07-deliverables-and-plan.md` set D0 = Oct 24. **Today (Oct 26) is D2**, which was meant to be settlement contracts. No code exists in the repo yet, so we are about two days behind. See [06-status-and-open-questions.md](06-status-and-open-questions.md) for the catch-up plan.
+The plan in `Idea/07-deliverables-and-plan.md` set D0 = Oct 24. By Oct 27 (D3) all code from build prompts 01–15 is in the repo and tested on a local chain. The two days of slip from Oct 26 are recovered. What remains is not code: the testnet/mainnet deploy (needs funded wallets), production hosting, HSP credentials, real providers, the video, the deck and the DoraHacks submission (deadline Sun Nov 1, 18:00 IST internal). See [06-status-and-open-questions.md](06-status-and-open-questions.md) and `NEEDS-FROM-USER.md`.

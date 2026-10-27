@@ -94,44 +94,112 @@ Full design: [`Idea/05-architecture.md`](Idea/05-architecture.md)
 | Layer | Tech |
 |---|---|
 | Contracts | Solidity, Foundry (tests fork HashKey mainnet), OpenZeppelin |
-| Payments | HSP: `@hsp/sdk`, `@hsp/mcp`, Coordinator; x402 via USDC.e |
+| Payments | HSP Coordinator (evm-transfer mandates + receipts), mock rail until credentials; x402 + EIP-3009 via USDC.e |
 | Oracles | APRO (push), Supra (pull) |
 | Bot | grammY (TypeScript) + Telegram Mini App + WalletConnect |
-| Backend | Node 24, Hono, viem, Postgres, Ponder indexer |
-| Agents | HashKey AgentKit, MCP SDK |
+| Backend | Node 24, Hono, viem, Postgres (drizzle, pg-boss), Ponder indexer |
+| Agents | viem accounts per agent, Claude Haiku (sentiment), MCP SDK |
 | AI parsing | Cornix-format rules + Claude Haiku structured extraction |
 | Encryption | AES-256-GCM per signal + ECIES key wrapping per subscriber |
 | Web | Next.js, Tailwind, shadcn/ui, lightweight-charts |
 
 Why each choice: [`Idea/06-tech-stack.md`](Idea/06-tech-stack.md)
 
+## Live links
+
+| | |
+|---|---|
+| Web app | _pending production deploy_ (`apps/web`, Vercel) |
+| Telegram bot + Mini App | _pending_ (`@BotFather` username in `NEXT_PUBLIC_BOT_USERNAME`) |
+| MCP server | _pending_ (`https://<mcp-host>/mcp`, see [`apps/mcp/README.md`](apps/mcp/README.md)) |
+| Status page | `/status` on the web app (API, relayer, keeper, settlements, HSP) |
+| Demo video | _pending_ |
+
+**Payments mode.** HSP runs in **mock mode** (`HSP_MODE=mock`, a local `MockRail` that runs the same evm-transfer mandate and receipt flow) until HSP credentials are issued. The escrow, credits, refunds and settlement are the real contracts in both modes.
+
+## Contract addresses
+
+Mainnet (HashKey Chain 177): **not deployed yet.** The deploy is guarded by `CONFIRM_MAINNET=yes` and waits for a funded deployer (see `NEEDS-FROM-USER.md`). Once deployed, `pnpm contracts:export` fills this table with [Blockscout](https://hsk.blockscout.com) links.
+
+| Contract | Mainnet (177) | Testnet (133) |
+|---|---|---|
+| SignalBook | _pending_ | _pending_ |
+| PerformanceEscrow | _pending_ | _pending_ |
+| OutcomeResolver | _pending_ | _pending_ |
+| RevenueRouter | _pending_ | _pending_ |
+| ProviderRegistry | _pending_ | _pending_ |
+| SignerCreditVerifier | _pending_ | _pending_ |
+| ERC-8004 Identity / Reputation | _pending_ | _pending_ |
+| Timelock (admin of all) | _pending_ | _pending_ |
+| USDT | [`0xF1B5…9029`](https://hsk.blockscout.com/address/0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029) | |
+| USDC.e | [`0x054e…8D0a`](https://hsk.blockscout.com/address/0x054ed45810DbBAb8B27668922D110669c9D88D0a) | |
+
+Local (anvil) addresses and the deploy runbook are in [`contracts/DEPLOYMENTS.md`](contracts/DEPLOYMENTS.md). The security model, admin powers and the pre-mainnet review (Slither triage included) are in [`contracts/SECURITY.md`](contracts/SECURITY.md).
+
 ## Repository structure
 
 ```
 Nundina/
-├── Idea/            Product docs: idea, trust design, competitors, architecture, plan, risks, research
-├── contracts/       (coming) Foundry: SignalBook, PerformanceEscrow, OutcomeResolver, RevenueRouter, ProviderRegistry, ERC-8004
-├── packages/shared/ (coming) EIP-712 types, scoring library, ABIs
-├── apps/bot/        (coming) Telegram bot + mini app
-├── apps/api/        (coming) API, HSP integration, key service
-├── apps/keeper/     (coming) Price watcher + settler
-├── apps/indexer/    (coming) Ponder indexer
-├── apps/mcp/        (coming) MCP server for AI agents
-├── apps/web/        (coming) Leaderboard and provider profiles
-└── agents/          (coming) Strategy, execution and aggregator agents
+├── contracts/        Foundry: SignalBook, PerformanceEscrow, OutcomeResolver (+ APRO/Supra adapters),
+│                     RevenueRouter, ProviderRegistry, SignerCreditVerifier, ERC-8004 registries
+├── packages/shared/  EIP-712 types, scoring library, markets, ABIs + addresses, job names
+├── apps/api/         Hono API: auth (SIWE, Telegram, API keys), relayer, HSP rails, key service, jobs, /status
+├── apps/bot/         Telegram bot (grammY): channel parser, lock cards, notifications
+├── apps/keeper/      Touch watcher, challenges, finalize/settle, expiry, sweeps
+├── apps/indexer/     Ponder indexer + projector into the API database
+├── apps/web/         Next.js: leaderboard, provider/signal pages, dashboards, Telegram Mini App
+├── apps/mcp/         MCP server for external agents (x402 / credits, delegated buys)
+├── agents/           core runtime + momentum, funding, sentiment, execution, aggregator agents
+├── Idea/ Architecture/ Memory/ Prompts/   product docs, design, build log
+└── TRACTION.md       providers, signals, purchases, refunds, volume
 ```
+
+## Run it locally
+
+Needs Node 24, pnpm 11, Docker and [Foundry](https://getfoundry.sh).
+
+```bash
+pnpm i
+docker compose up -d postgres            # or: pnpm db:up
+cp .env.example .env                     # then fill in keys (KEY_SERVICE_MASTER_KEY, INTERNAL_SECRET, …)
+pnpm chain:local                         # anvil on :8545 (separate terminal)
+pnpm contracts:deploy:local && pnpm contracts:export
+pnpm --filter @nundina/api db:migrate && pnpm --filter @nundina/api db:seed
+pnpm --filter @nundina/api dev           # API on :8787
+pnpm --filter @nundina/keeper dev        # keeper
+pnpm --filter @nundina/bot dev           # Telegram bot (needs TELEGRAM_BOT_TOKEN)
+pnpm --filter @nundina/web dev           # web on :3000
+pnpm --filter @nundina/mcp start         # MCP on :8791
+pnpm --filter @nundina/agent-momentum start   # any agent (agents/*/README.md)
+```
+
+Demos on a local chain:
+- `pnpm --filter @nundina/keeper demo:aggregator` runs the full A2A flow: two providers, an aggregator meta-signal, an execution agent buying it, settlement, and `Routed` payouts to both upstreams.
+- `pnpm --filter @nundina/agent-aggregator stage-demo` (testnet/mainnet) pre-stages a short-expiry LONG/SHORT pair (one WIN, one LOSS) plus an aggregator meta-signal for recording.
+- `pnpm contracts:check-roles:local` deploys to a throwaway anvil and checks every role and wiring against `Deploy.s.sol`. Run `pnpm contracts:check-roles` against 177 after the mainnet deploy.
+
+## Tests
+
+```bash
+pnpm contracts:test      # forge: 112 tests (unit, fuzz, invariants, mainnet-fork oracle tests)
+pnpm test                # every package, sequentially (shared Postgres test DB + anvil)
+pnpm typecheck
+```
+
+CI (`.github/workflows/ci.yml`) runs install → typecheck → test → forge test → `pnpm audit` on every push.
 
 ## Roadmap
 
 - [x] Research, product design and architecture ([`Idea/`](Idea/README.md))
-- [ ] Core contracts: commit-reveal, escrow, settlement, bonds
-- [ ] HSP payments, then receipt verification, then escrow credit
-- [ ] ERC-8004 registries on HashKey mainnet
-- [ ] Telegram bot (provider and subscriber flows)
-- [ ] Keeper, indexer, scoring, web leaderboard
-- [ ] Strategy, execution and aggregator agents, plus the MCP server
+- [x] Core contracts: commit-reveal, escrow, settlement, bonds, timelocked admin
+- [x] HSP payments (mock + live rail), receipt verification, escrow credit
+- [x] ERC-8004 identity + reputation registries
+- [x] Telegram bot (provider and subscriber flows) + Mini App
+- [x] Keeper, indexer, scoring, web leaderboard and dashboards
+- [x] Strategy, execution and aggregator agents, plus the MCP server
+- [x] Security pass: Slither triage, role checks, rate limits, monitoring
 - [ ] Mainnet deployment and verification on Blockscout
-- [ ] Onboard the first real Telegram signal providers
+- [ ] Onboard the first real Telegram signal providers ([`TRACTION.md`](TRACTION.md))
 
 **Later:** threshold or TEE encryption, pay-if-right for *any* verifiable prediction (prediction markets, funding rates, sports), an agent-to-agent alpha exchange, reputation-backed agent credit.
 
@@ -152,7 +220,7 @@ Nundina/
 
 ## Disclaimer
 
-Nundina is **verification and settlement infrastructure**. It does not provide investment advice. Signals are created by independent providers, who are responsible for their own compliance. Crypto trading carries risk.
+Nundina is **verification and settlement infrastructure**. It does not provide investment advice. Signals are created by independent providers, who are responsible for their own compliance. Past results do not predict future results. Crypto trading carries risk, and you can lose more than the price of a signal; the refund covers only that price. Smart contracts, oracles and payment rails can fail. Full terms: `/legal` on the web app.
 
 ---
 

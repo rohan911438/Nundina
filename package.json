@@ -23,7 +23,9 @@
     "contracts:smoke": "tsx scripts/contracts.ts smoke testnet",
     "contracts:smoke:local": "tsx scripts/contracts.ts smoke local",
     "contracts:export": "tsx scripts/export-abis.ts && tsx scripts/sync-addresses.ts",
-    "chain:local": "anvil --chain-id 31337 --block-time 2"
+    "chain:local": "anvil --chain-id 31337 --block-time 2",
+    "contracts:check-roles": "pnpm --filter @nundina/api exec tsx --env-file-if-exists=../../.env scripts/check-roles.ts",
+    "contracts:check-roles:local": "pnpm --filter @nundina/api exec tsx --env-file-if-exists=../../.env scripts/check-roles-local.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

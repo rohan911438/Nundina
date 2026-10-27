@@ -7,6 +7,7 @@ import type { AppEnv } from "./auth/context.js";
 import { siweRoutes } from "./auth/siwe.js";
 import { onError } from "./lib/errors.js";
 import { log } from "./lib/log.js";
+import { rateLimit } from "./lib/rateLimit.js";
 import { draftRoutes } from "./routes/drafts.js";
 import { healthRoutes } from "./routes/health.js";
 import { providerRoutes } from "./routes/providers.js";
@@ -44,6 +45,7 @@ export function createApp() {
     log.debug({ method: c.req.method, path: c.req.path, status: c.res.status, ms: Date.now() - t }, "req");
   });
   app.use("*", authenticate);
+  app.use("*", rateLimit);
   app.onError(onError);
   app.notFound((c) => c.json({ error: { code: "not_found", message: "Route not found" } }, 404));
 

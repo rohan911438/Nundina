@@ -10,7 +10,7 @@ import { env } from "./env.js";
 export function agentWallet(privateKey: Hex) {
   const account: PrivateKeyAccount = privateKeyToAccount(privateKey);
   const chain = chainById(env().CHAIN_ID);
-  const url = env().RPC_URL ?? (env().CHAIN_ID === 31337 ? env().LOCAL_RPC_URL : env().HSK_TESTNET_RPC_URL) ?? chain.rpcUrls.default.http[0];
+  const url = env().RPC_URL ?? ({ 31337: env().LOCAL_RPC_URL, 133: env().HSK_TESTNET_RPC_URL, 177: env().HSK_RPC_URL } as Record<number, string | undefined>)[env().CHAIN_ID] ?? chain.rpcUrls.default.http[0];
   const transport = http(url);
   return {
     account,

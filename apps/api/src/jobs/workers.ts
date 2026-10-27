@@ -3,6 +3,7 @@ import { processVerify } from "./hspRetry.js";
 import { queue, JOBS } from "./queue.js";
 import { revealSignal } from "./reveal.js";
 import { recomputeAll, recomputeProvider } from "./scoring.js";
+import { monitorTick } from "../services/monitor.js";
 
 /** Starts the API's own job handlers. Notify jobs are consumed by the bot (prompt 09). */
 export async function startWorkers() {
@@ -24,5 +25,9 @@ export async function startWorkers() {
   });
   // hourly full recompute (periods roll over even without new settlements)
   await b.schedule(JOBS.score, "0 * * * *", {});
+  await b.work(JOBS.monitor, async () => {
+    await monitorTick();
+  });
+  await b.schedule(JOBS.monitor, "*/5 * * * *", {});
   log.info("job workers started");
 }

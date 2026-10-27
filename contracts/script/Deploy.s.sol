@@ -164,7 +164,7 @@ contract Deploy is Config {
         return o;
     }
 
-    function _wire(NetConfig memory, Actors memory a, Out memory o) internal {
+    function _wire(NetConfig memory c, Actors memory a, Out memory o) internal {
         SignalBook book = SignalBook(o.book);
         book.grantRole(book.RELAYER_ROLE(), a.relayer);
         book.setResolver(OutcomeResolver(o.resolver));
@@ -173,6 +173,7 @@ contract Deploy is Config {
         RevenueRouter(o.router).setEscrow(o.escrow);
         ReputationRegistry rep = ReputationRegistry(o.reputation);
         rep.grantRole(rep.WRITER_ROLE(), o.escrow);
+        PerformanceEscrow(o.escrow).setMaxSubscribers(c.maxSubscribers);
     }
 
     /// @dev 10. Every admin role goes to the timelock; the deployer renounces.

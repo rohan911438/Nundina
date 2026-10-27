@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+    branches: [main, "build/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build --sizes
+        working-directory: contracts
+      - run: forge test
+        working-directory: contracts
+
+  apps:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nundina
+          POSTGRES_PASSWORD: nundina
+          POSTGRES_DB: nundina
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nundina" --health-interval 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://nundina:nundina@localhost:5432/nundina_test
+      AGENTS_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1 # anvil for the API / keeper / MCP integration tests
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: forge build
+        working-directory: contracts
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm audit --prod --audit-level critical

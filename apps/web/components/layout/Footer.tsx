@@ -33,6 +33,7 @@ export async function Footer() {
           <Link href="/#how">How it works</Link>
           <Link href="/#agents">For agents</Link>
           <Link href="/legal">Legal</Link>
+          <Link href="/status">Status</Link>
         </FooterCol>
         <FooterCol title="Community">
           <a href={`https://t.me/${config.botUsername}`} target="_blank" rel="noreferrer noopener">
