@@ -125,14 +125,14 @@ Mainnet (HashKey Chain 177): **not deployed yet.** The deploy is guarded by `CON
 
 | Contract | Mainnet (177) | Testnet (133) |
 |---|---|---|
-| SignalBook | _pending_ | `0xCbA92a5a4B7f785E0DBe3cf40BD243242395f8aa` |
-| PerformanceEscrow | _pending_ | `0x1dc2F824Da90EAd40e655e6a681979aEE6535416` |
-| OutcomeResolver | _pending_ | `0x008dDB1a2150941E3b56d1a31bD9ce6832Fa8589` |
-| RevenueRouter | _pending_ | `0x1Efe8317BDA4572b39532F7eb160FF1D0EBA45D9` |
-| ProviderRegistry | _pending_ | `0x56898432063bD084a30448032087216cC07A2A14` |
-| SignerCreditVerifier | _pending_ | `0x76E24B4B7aF6581970401336bD4898CDbD23a525` |
-| ERC-8004 Identity / Reputation | _pending_ | `0x4A9F0482B16146b9564143A15a1B6d26Ffd072D9` / `0x3aF449FB0e190799342F9ff00f9175Ba35C2834d` |
-| Timelock (admin of all) | _pending_ | `0xD264D767C0D3A75030dE7b5AB926D58d09e3626A` |
+| SignalBook | _pending_ | `0x62DED8396e8cCc0E5b285049CFa0A7598c76E05f` |
+| PerformanceEscrow | _pending_ | `0xd914E77bCfAE4780EA79FeE018e6a4834473e0Ff` |
+| OutcomeResolver | _pending_ | `0x06947AE35969c50D8960d4181834E483F2937F3F` |
+| RevenueRouter | _pending_ | `0x39fa1d3eDFCB7a5CA983FeaA612bEFC27f16989c` |
+| ProviderRegistry | _pending_ | `0x2e9363784eE46242b517b91b6b6087A76e522207` |
+| SignerCreditVerifier | _pending_ | `0xe480e2Cbb502d06AA1FcBD6B7D5BDD529D01c01d` |
+| ERC-8004 Identity / Reputation | _pending_ | `0xe77B66843E905b67421C926a15d85e7D9B42E630` / `0x1aB76F0F56aA24E849aff2e3727FA5e94B2D37e2` |
+| Timelock (admin of all) | _pending_ | `0xDF3aeF8fae78B75c5AEBD48963f05855D4ffBF86` |
 | USDT | [`0xF1B5…9029`](https://hsk.blockscout.com/address/0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029) | `0x372325443233fEbaC1F6998aC750276468c83CC6` (HSP test) |
 | USDC.e | [`0x054e…8D0a`](https://hsk.blockscout.com/address/0x054ed45810DbBAb8B27668922D110669c9D88D0a) | `0x8FE3cB719Ee4410E236Cd6b72ab1fCDC06eF53c6` (HSP test) |
 

@@ -12,7 +12,7 @@
 import { parseEventLogs, createPublicClient, createWalletClient, encodeAbiParameters, http, keccak256, toHex, type Abi, type Address, type Hex } from "viem";
 import { nonceManager, privateKeyToAccount } from "viem/accounts";
 import { contractAddress, explorerTx, hashkeyTestnet } from "@nundina/shared";
-import { mockPriceAdapterAbi, outcomeResolverAbi, performanceEscrowAbi, signalBookAbi } from "@nundina/shared/abis";
+import { identityRegistryAbi, mockPriceAdapterAbi, outcomeResolverAbi, performanceEscrowAbi, providerRegistryAbi, signalBookAbi } from "@nundina/shared/abis";
 
 const CHAIN = 133;
 const rpc = process.env.HSK_TESTNET_RPC_URL || hashkeyTestnet.rpcUrls.default.http[0];
@@ -32,6 +32,8 @@ const book = contractAddress(CHAIN, "SignalBook");
 const resolver = contractAddress(CHAIN, "OutcomeResolver");
 const escrow = contractAddress(CHAIN, "PerformanceEscrow");
 const oracle = contractAddress(CHAIN, "PushPriceAdapter");
+const identity = contractAddress(CHAIN, "IdentityRegistry");
+const registry = contractAddress(CHAIN, "ProviderRegistry");
 const BTC = keccak256(toHex("BTC/USD"));
 
 type Signal = {
@@ -81,7 +83,19 @@ async function revealedSignals(): Promise<{ id: bigint; s: Signal }[]> {
   return out;
 }
 
-async function finalState(id: bigint, blockNumber?: bigint) {
+async function finalState(id: bigint, blockNumber?: bigint): Promise<{ outcome: string | undefined; final: boolean; pot: string | undefined }> {
+  // a lagging node may not have the receipt's block yet ("block not found"): retry a few times
+  for (let i = 0; ; i++) {
+    try {
+      return await readState(id, blockNumber);
+    } catch (e) {
+      if (i >= 4) throw e;
+      await new Promise((r) => setTimeout(r, 3_000));
+    }
+  }
+}
+
+async function readState(id: bigint, blockNumber?: bigint) {
   const [o, , fin] = (await pub.readContract({ address: resolver, abi: outcomeResolverAbi, functionName: "outcomeOf", args: [id], blockNumber })) as [number, bigint, boolean];
   const pot = (await pub.readContract({ address: escrow, abi: performanceEscrowAbi, functionName: "potOf", args: [id], blockNumber })) as { state: number };
   return { outcome: ["NONE", "WIN", "LOSS", "VOID"][o], final: fin, pot: ["OPEN", "SETTLED", "REFUNDED"][pot.state] };
@@ -135,6 +149,13 @@ async function main() {
   }
 
   // ── B. fresh practice signal with a proven TP touch
+  // a fresh deploy has no providers: register the deployer as a practice provider (no bond needed)
+  if (!(await pub.readContract({ address: registry, abi: providerRegistryAbi, functionName: "isRegistered", args: [provider.address] }))) {
+    console.log("\nregister provider");
+    const rr = await send("ERC-8004 identity", provider, identity, identityRegistryAbi as Abi, "register", ["https://nundina.xyz/agents/lifecycle.json"]);
+    const agentId = (parseEventLogs({ abi: identityRegistryAbi, eventName: "Registered", logs: rr.logs })[0]!.args as { agentId: bigint }).agentId;
+    await send(`register practice provider (#${agentId})`, provider, registry, providerRegistryAbi as Abi, "register", [agentId, provider.address, keccak256(toHex("@nundina_lifecycle")), true]);
+  }
   const spot = (await pub.readContract({ address: resolver, abi: outcomeResolverAbi, functionName: "spotPrice", args: [BTC] }).catch(() => 0n)) as bigint;
   const ref = spot || 8_000_000_000_000n;
   if (!spot) {

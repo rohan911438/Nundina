@@ -18,7 +18,7 @@ Scope: `contracts/src` (PerformanceEscrow, ProviderRegistry, SignalBook, Outcome
 
 | # | Severity | Where | Finding | Status |
 |---|---|---|---|---|
-| 1 | Medium | `PerformanceEscrow.claimRefund` | Anyone could refund every buyer 24 h after expiry **even if the oracle had already finalized a WIN**. If the keeper was down for a day, a right provider lost its payout. | **Fixed**: refused with `OutcomeFinal` when the resolver reports a final outcome, so `settle` applies it. The resolver call is in `try`, so a broken resolver can never block refunds. Tests: `test_claimRefund_finalWin_mustSettle`, `test_claimRefund_pendingNotFinal_stillRefunds`. Needs a testnet redeploy to take effect there (see below) |
+| 1 | Medium | `PerformanceEscrow.claimRefund` | Anyone could refund every buyer 24 h after expiry **even if the oracle had already finalized a WIN**. If the keeper was down for a day, a right provider lost its payout. | **Fixed**: refused with `OutcomeFinal` when the resolver reports a final outcome, so `settle` applies it. The resolver call is in `try`, so a broken resolver can never block refunds. Tests: `test_claimRefund_finalWin_mustSettle`, `test_claimRefund_pendingNotFinal_stillRefunds`. Live on testnet since the 28 Oct redeploy |
 | 2 | Medium (API) | `POST /purchases` | A signal's pot holds one token, fixed by the first credit. A second buyer choosing the other token paid, then failed to credit (`WrongToken`) and had to wait for recovery. | **Fixed**: the API refuses with `409 token_locked` (and the token to use) before any money moves, using the on-chain pot or any in-flight purchase. The web Buy flow switches the token automatically. Test: `purchases.test.ts` |
 | 3 | Low | `AproPushAdapter.priceAt` | If reading the next round reverts (for example at a phase boundary), the check that the hinted round is the latest one before `ts` is skipped, so a caller could choose an older round within `maxStaleness`. | Accepted: bounded by `maxStaleness`; on HashKey the keeper resolves promptly or uses a Supra proof. Revisit with the real APRO feed |
 | 4 | Low | Escrow and registry | Bond slashes are in bond-token units equal to the price, so the bond token and payment token must both be 6-decimal stablecoins. | Holds for every allowlisted token (checked on testnet). Keep it as an allowlist rule |
@@ -62,6 +62,23 @@ Run on 28 Oct 2026 with `apps/api/scripts/testnet-lifecycle.ts` against the depl
 
 End state: #1 LOSS, final, pot SETTLED; #3 WIN, final, pot SETTLED.
 
+### Rerun on the redeployment (28 Oct 2026, with the `claimRefund` fix)
+
+The contracts were redeployed with the `claimRefund` fix (`contracts/DEPLOYMENTS.md`, start block 34990052) and `CHAIN_ID=133 pnpm contracts:check-roles` passes. On a fresh deploy the script now registers the provider itself. The run above used the superseded first deployment.
+
+| Step | Signer | Tx | Gas |
+|---|---|---|---|
+| `ERC-8004 identity register` (fresh deploy) | provider | [0x365822d2…](https://testnet-explorer.hsk.xyz/tx/0x365822d215687d74ac711568340bc78f2698dce9298b5dbdfb3556e75337d2d0) | 145,519 |
+| `ProviderRegistry.register` (practice) | provider | [0x4510985f…](https://testnet-explorer.hsk.xyz/tx/0x4510985f1939b91f94156e2126448dba50fb5a52a7044df47d0948a8baa382af) | 165,059 |
+| Signal #1: `commit` (provider signs EIP-712, relayer sends) | relayer | [0xddd8f407…](https://testnet-explorer.hsk.xyz/tx/0xddd8f40752e4b9a4f664d272a7bf773f6e432e179c032874bb436e1da0c5441f) | 241,777 |
+| Signal #1: `reveal` | relayer | [0x8854c416…](https://testnet-explorer.hsk.xyz/tx/0x8854c4165f0ee853246a4443147edab524d6e07f100c5873c1d7c3084a01860b) | 229,017 |
+| Oracle posts a TP touch | keeper | [0xecc99d35…](https://testnet-explorer.hsk.xyz/tx/0xecc99d35c808b51b837da8971217c6710aa07b89d1e8bca0c787b05d41805bb2) | 47,240 |
+| Signal #1: `proveTouch` (TP) | keeper | [0x91278f88…](https://testnet-explorer.hsk.xyz/tx/0x91278f88201f2da79fb34d6a282d01f79c17974f96c96ce1884e6079359223e3) | 150,363 |
+| Signal #1: `finalize` after the 10-min window | keeper | [0x316b55cf…](https://testnet-explorer.hsk.xyz/tx/0x316b55cf2aa5b9746ad757bcb998be9f8bd56faf63ac5b7090ceeca1b6cf4b63) | 52,748 |
+| Signal #1: `settle` | keeper | [0x0c1fe306…](https://testnet-explorer.hsk.xyz/tx/0x0c1fe30689f560d9a12b3bbbaebbd03823f43c40b8a4f4b5cbeccaf8bf8fdfc1) | 257,031 |
+
+End state: #1 WIN, final, pot SETTLED. The only failure was a read right after `settle` (`block not found` from a lagging node); the script now retries state reads too.
+
 What broke on the way, and the fixes:
 
 - **Commits revert with `StalePrice` when nobody pushes prices.** The testnet feed is a push oracle with a 2 h staleness limit, so the keeper must be running on testnet. The API now names this error in plain words instead of returning a raw selector (`apps/api/src/chain/relayer.ts`, `humanRevert`).
@@ -71,5 +88,5 @@ What broke on the way, and the fixes:
 
 ## Open items
 
-- **Redeploy testnet** to pick up fix 1. The deployer has about 0.042 HSK; a full deploy at the current 1 gwei gas price costs roughly 0.03 HSK, so it fits but leaves little margin. Top up first if possible (NEEDS-FROM-USER item 29).
+- ~~Redeploy testnet~~ done 28 Oct (see the rerun above).
 - **Paid flows on testnet** (bond deposit, HSP purchase, credit, WIN payout, LOSS refund and slash) need HSP's test USDT/USDC (NEEDS item 28). The same flows run end to end on anvil in CI (`apps/api/test/purchases.test.ts`, `hspGateway.test.ts`, `apps/keeper/test`).
