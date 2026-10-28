@@ -40,26 +40,26 @@ export function splitCiphertext(c: Uint8Array) {
  * ECIES-wraps the signal's AES key to the buyer's registered encryption public key and stores
  * the delivery. Idempotent per purchase.
  */
-export async function wrapKeyFor(purchaseId: string, channel: "web" | "telegram" | "api" = "web") {
-  const existing = await db().query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, purchaseId) });
+export async function wrapKeyFor(purchaseId: string, channel: "web" | "telegram" | "api" = "web", q: Pick<ReturnType<typeof db>, "query" | "insert"> = db()) {
+  const existing = await q.query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, purchaseId) });
   if (existing) return existing;
-  const p = await db().query.purchases.findFirst({ where: eq(purchases.id, purchaseId) });
+  const p = await q.query.purchases.findFirst({ where: eq(purchases.id, purchaseId) });
   if (!p) throw notFound("Purchase");
   // agent purchases are wrapped to the agent's own key, so the agent process can decrypt them
-  const agent = p.agentId ? await db().query.agents.findFirst({ where: eq(agents.id, p.agentId) }) : undefined;
-  const buyer = p.buyerUserId ? await db().query.users.findFirst({ where: eq(users.id, p.buyerUserId) }) : undefined;
+  const agent = p.agentId ? await q.query.agents.findFirst({ where: eq(agents.id, p.agentId) }) : undefined;
+  const buyer = p.buyerUserId ? await q.query.users.findFirst({ where: eq(users.id, p.buyerUserId) }) : undefined;
   const pubkey = agent?.encPubkey ?? buyer?.pubkey;
   if (!pubkey) throw new ApiError(409, "no_encryption_key", "Buyer has no registered encryption key");
-  const s = await db().query.signals.findFirst({ where: eq(signals.id, p.signalId) });
+  const s = await q.query.signals.findFirst({ where: eq(signals.id, p.signalId) });
   if (!s?.aesKeyEnc) throw new ApiError(409, "no_key_material", "This signal can't be unlocked: its key was not saved when it was locked. Pick another signal; the provider can post it again.");
 
   const wrapped = wrapKey(pubkey, unseal(s.aesKeyEnc));
-  const [row] = await db()
+  const [row] = await q
     .insert(keyDeliveries)
     .values({ purchaseId, wrappedKey: wrapped, channel, deliveredAt: new Date() })
     .onConflictDoNothing()
     .returning();
-  return row ?? (await db().query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, purchaseId) }))!;
+  return row ?? (await q.query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, purchaseId) }))!;
 }
 
 /** Plaintext + salt for SignalBook.reveal / resolver calls. Internal callers only. */

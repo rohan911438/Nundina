@@ -242,6 +242,17 @@ describe.skipIf(!canRunChain)("purchases (DirectRail on anvil)", () => {
     expect(r.body.status).toBe("KEY_SENT");
   });
 
+  it("a signal without key material can't be bought or claimed, and leaves no claim behind", async () => {
+    const own = await db().query.users.findFirst({ where: eq(users.wallet, provider.address.toLowerCase()) });
+    const { signalId: id } = await chain.commitViaApi(provider, own!.id, 0n);
+    await db().update(signals).set({ aesKeyEnc: null }).where(eq(signals.id, id));
+    const b = await newBuyer("0");
+    const r = await postJson("/purchases", { signalId: id.toString() }, b.headers);
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe("no_key_material");
+    expect(await db().select().from(purchases).where(eq(purchases.signalId, id))).toHaveLength(0);
+  });
+
   it("never logs plaintext, keys or salts", async () => {
     log.info({ plaintext: "SECRET-PLAINTEXT", nested: { salt: "0xSECRETSALT", aesKey: "SECRETKEY" } }, "redaction check");
     const all = testLogLines.join("\n");

@@ -19,6 +19,7 @@ import { syncGatewayPurchase } from "../payments/gatewaySync.js";
 import { enqueue, JOBS } from "../jobs/queue.js";
 import { revealSignal } from "../jobs/reveal.js";
 
+const NO_KEY = "This signal can't be unlocked: its key was not saved when it was locked. Pick another signal; the provider can post it again.";
 const OPEN_STATUSES = ["COMMITTED", "REVEALED"];
 const PAID_STATUSES = ["CREDITED", "KEY_SENT", "SETTLED_WIN", "REFUNDED"];
 /** Statuses after which a buyer may start a fresh attempt for the same signal. */
@@ -137,6 +138,8 @@ export const purchaseRoutes = new Hono<AppEnv>()
     if (!OPEN_STATUSES.includes(s.status) || s.outcome) throw conflict("signal_closed", "Signal is no longer open");
     if (s.validUntil <= new Date()) throw conflict("signal_expired", "Signal has expired");
     if (s.source !== "chain") throw conflict("not_on_chain", "Demo signals cannot be bought");
+    // without key material nobody could ever read it: refuse before anyone pays or claims
+    if (!s.aesKeyEnc) throw conflict("no_key_material", NO_KEY);
     const price = BigInt(s.price);
 
     const provider = await db().query.providers.findFirst({ where: eq(providers.id, s.providerId) });
@@ -172,10 +175,17 @@ export const purchaseRoutes = new Hono<AppEnv>()
         outcomeClass: "ACCEPT",
         updatedAt: new Date(),
       };
-      const [p] = existing
-        ? await db().update(purchases).set(free).where(eq(purchases.id, existing.id)).returning()
-        : await db().insert(purchases).values(free).returning();
-      await afterCredit(p!.id, signalId);
+      // claim and key delivery together: a failed wrap leaves no half-made claim behind
+      const id = await db().transaction(async (tx) => {
+        const [p] = existing
+          ? await tx.update(purchases).set(free).where(eq(purchases.id, existing.id)).returning()
+          : await tx.insert(purchases).values(free).returning();
+        await wrapKeyFor(p!.id, "web", tx);
+        await tx.update(purchases).set({ status: "KEY_SENT" }).where(eq(purchases.id, p!.id));
+        return p!.id;
+      });
+      await enqueue(JOBS.notifyKeyDelivered, { purchaseId: id, signalId: signalId.toString() }, `key:${id}`);
+      const p = { id };
       return c.json({ purchaseId: p!.id, status: "KEY_SENT", intent: null }, 201);
     }
 
@@ -303,8 +313,9 @@ export const purchaseRoutes = new Hono<AppEnv>()
   .get("/purchases/:id/key", requireUser, async (c) => {
     const p = await ownPurchase(c.req.param("id"), getAuth(c));
     const d = await db().query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, p.id) });
-    if (!d) throw conflict("key_not_ready", `Key not delivered yet (status ${p.status})`);
     const s = await db().query.signals.findFirst({ where: eq(signals.id, p.signalId) });
+    if (!d && !s?.aesKeyEnc) throw conflict("no_key_material", NO_KEY);
+    if (!d) throw conflict("key_not_ready", `Key not delivered yet (status ${p.status})`);
     if (!s?.ciphertext) throw notFound("Ciphertext");
     return c.json({ purchaseId: p.id, signalId: p.signalId.toString(), wrappedKey: d.wrappedKey, ...splitCiphertext(s.ciphertext) });
   })
