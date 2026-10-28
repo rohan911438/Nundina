@@ -14,7 +14,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const data = await api.providers({ ...filters, limit: 100 }).catch(() => null);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16">
+    <div className="group/lb mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16">
       <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Leaderboard</h1>
       <p className="mt-3 max-w-2xl text-muted">
         Ranked only on signals committed before the move and settled by oracles. Providers need 30 settled signals before they get a rank.
@@ -22,7 +22,8 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
       <div className="mt-8">
         <LeaderboardFilters value={filters} />
       </div>
-      <div className="mt-6">
+      {/* dims while a filter change is loading (the filter bar sets data-pending) */}
+      <div className="mt-6 transition-opacity duration-200 group-has-[[data-pending]]/lb:pointer-events-none group-has-[[data-pending]]/lb:opacity-50">
         {data == null ? (
           <Empty title="The leaderboard is unavailable" body="We couldn't reach the API. Try again in a moment." />
         ) : data.items.length === 0 ? (
