@@ -173,6 +173,8 @@ export const telegramApi = {
   startLink: () => authed<{ token: string; expiresInS: number }>("/me/telegram/link", { body: {} }),
   /** Finishes a link the bot started with /connect. */
   redeem: (token: string) => authed<{ telegramId: number; telegramUsername: string | null }>("/me/telegram/redeem", { body: { token } }),
+  /** Unlinks the Telegram account and un-verifies the channel verified through it. */
+  disconnect: () => authed<{ ok: true; telegram: boolean; channel: boolean }>("/me/telegram/disconnect", { body: {} }),
 };
 
 export const purchasesApi = {

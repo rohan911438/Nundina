@@ -5,14 +5,14 @@ import { z } from "zod";
 import { fromUnits, toUnits } from "@nundina/shared";
 import { identityRegistryAbi } from "@nundina/shared/abis";
 import { db } from "../db/client.js";
-import { providerScores, providers, settlements, signalDrafts, signals, telegramLinkCodes } from "../db/schema.js";
+import { providerScores, providers, settlements, signalDrafts, signals, telegramLinkCodes, users } from "../db/schema.js";
 import { env } from "../env.js";
 import { getAuth, requireInternal, requireUser, type AppEnv } from "../auth/context.js";
 import { addr } from "../chain/clients.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { bytesToHex, randomBytes } from "../lib/crypto.js";
 import { PROBATION_N, publicProvider, publicSignal, scoreView } from "../lib/serialize.js";
-import { verifyChannel } from "../services/channelVerify.js";
+import { unverifyChannel, verifyChannel } from "../services/channelVerify.js";
 import { providerOfUser } from "../services/providerOfUser.js";
 import { redeemOnWeb, startLinkFromWeb } from "../services/telegramAccount.js";
 
@@ -186,6 +186,18 @@ export const providerRoutes = new Hono<AppEnv>()
     const b = z.object({ token: z.string().min(8) }).safeParse(await c.req.json().catch(() => ({})));
     if (!b.success) throw badRequest("bad_body", "token required");
     return c.json(await redeemOnWeb(b.data.token, a.userId!));
+  })
+  /**
+   * Disconnects Telegram: the account comes off the wallet and a verified channel comes off the
+   * profile (it was verified through that account). Both can be linked again the usual way.
+   */
+  .post("/me/telegram/disconnect", requireUser, async (c) => {
+    const a = getAuth(c);
+    const u = await db().query.users.findFirst({ where: eq(users.id, a.userId!) });
+    const p = await providerOfUser(a.userId!, a.wallet);
+    if (p?.channelId != null) await unverifyChannel(p.channelId);
+    await db().update(users).set({ telegramId: null, telegramUsername: null }).where(eq(users.id, a.userId!));
+    return c.json({ ok: true, telegram: Boolean(u?.telegramId), channel: p?.channelId != null });
   })
   .get("/me/provider", requireUser, async (c) => {
     const p = await myProvider(getAuth(c));

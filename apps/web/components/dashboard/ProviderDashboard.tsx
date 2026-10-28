@@ -23,7 +23,7 @@ import { cn } from "@/lib/cn";
 import { config } from "@/lib/config";
 import { addr } from "@/lib/contracts";
 import { ago, explorer, r as fmtR, short, usd } from "@/lib/format";
-import { draftsApi, me, providerApi, type MyProvider } from "@/lib/session";
+import { draftsApi, me, providerApi, telegramApi, type MyProvider } from "@/lib/session";
 import { signalState } from "@/lib/signal-state";
 import { useWallet, walletErrorMessage } from "@/lib/wallet/useWallet";
 
@@ -250,6 +250,25 @@ function Settings({ d }: { d: MyProvider }) {
   const [payIfWorks, setPayIfWorks] = useState(d.settings.payIfWorks);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const session = useQuery({ queryKey: ["session"], queryFn: me.session, retry: false });
+  const tgLinked = Boolean(session.data?.telegram) || d.provider.linked;
+  const [confirmTg, setConfirmTg] = useState(false);
+
+  async function disconnectTelegram() {
+    if (!confirmTg) return setConfirmTg(true);
+    setBusy("telegram");
+    setMsg(null);
+    try {
+      await telegramApi.disconnect();
+      await Promise.all([qc.invalidateQueries({ queryKey: ["session"] }), qc.invalidateQueries({ queryKey: ["me-provider"] })]);
+      setMsg({ ok: true, text: "Telegram disconnected. Connect it again from Finish setup." });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof ApiError ? e.message : String(e) });
+    } finally {
+      setBusy(null);
+      setConfirmTg(false);
+    }
+  }
 
   async function save() {
     setBusy("save");
@@ -308,6 +327,12 @@ function Settings({ d }: { d: MyProvider }) {
           <Button variant="outline" size="sm" onClick={() => void leavePractice()} disabled={Boolean(busy)}>
             {busy === "practice" ? <Loader2 aria-hidden className="animate-spin" /> : null}
             Leave practice and start charging
+          </Button>
+        ) : null}
+        {tgLinked ? (
+          <Button variant="outline" size="sm" onClick={() => void disconnectTelegram()} disabled={Boolean(busy)} data-testid="disconnect-telegram">
+            {busy === "telegram" ? <Loader2 aria-hidden className="animate-spin" /> : null}
+            {confirmTg ? "Tap again: unlink Telegram and the channel" : "Disconnect Telegram"}
           </Button>
         ) : null}
       </div>

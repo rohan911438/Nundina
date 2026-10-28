@@ -3,10 +3,10 @@ import { eq } from "drizzle-orm";
 import { createSiweMessage } from "viem/siwe";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { closeDb, db } from "../src/db/client.js";
-import { agents, users } from "../src/db/schema.js";
+import { agents, providers, users } from "../src/db/schema.js";
 import { signInitData } from "../src/auth/telegram.js";
 import { userIdForTelegram } from "../src/auth/internal.js";
-import { app, getJson, INTERNAL, postJson } from "./helpers.js";
+import { app, getJson, INTERNAL, makeProvider, postJson } from "./helpers.js";
 
 afterAll(closeDb);
 
@@ -134,5 +134,23 @@ describe("internal agent runtime routes", () => {
     // logs a route decision; refuses without the internal secret
     expect((await req("POST", `/agents/${a.body.agent.id}/activity`, asAgent, { decision: "route", reason: "WIN routed" })).status).toBe(201);
     expect((await req("POST", "/internal/agents/register", {}, body)).status).toBe(403);
+  });
+});
+
+describe("Disconnect Telegram", () => {
+  it("unlinks the account and un-verifies the channel", async () => {
+    const address = privateKeyToAccount(generatePrivateKey()).address;
+    const { userId, providerId } = await makeProvider({ address });
+    const tgId = 62_000_000 + Math.floor(Math.random() * 1000);
+    await db().update(users).set({ telegramId: tgId, telegramUsername: "someone" }).where(eq(users.id, userId));
+    await db().update(providers).set({ channelId: -1006200000, channelTitle: "Chan", channelVerifiedAt: new Date(), channelRole: "creator" }).where(eq(providers.id, providerId));
+
+    const r = await postJson("/me/telegram/disconnect", {}, { ...INTERNAL, "x-act-as-user": String(userId) });
+    expect(r.body).toMatchObject({ ok: true, telegram: true, channel: true });
+    const u = await db().query.users.findFirst({ where: eq(users.id, userId) });
+    expect(u?.telegramId).toBeNull();
+    const p = await db().query.providers.findFirst({ where: eq(providers.id, providerId) });
+    expect(p?.channelId).toBeNull();
+    expect(p?.channelVerifiedAt).toBeNull();
   });
 });
