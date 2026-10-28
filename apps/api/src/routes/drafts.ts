@@ -12,7 +12,7 @@ import {
   serializeSignal,
   type Signal,
 } from "@nundina/shared";
-import { signalBookAbi } from "@nundina/shared/abis";
+import { providerRegistryAbi, signalBookAbi } from "@nundina/shared/abis";
 import { db } from "../db/client.js";
 import { providers, signalDrafts, signals } from "../db/schema.js";
 import { env } from "../env.js";
@@ -101,10 +101,23 @@ async function ownedDraft(id: number, auth: Auth) {
   return { draft, provider };
 }
 
+/**
+ * Practice is whatever the registry says: SignalBook rejects a paid practice signal. A profile made
+ * from chain events (or registered before the app knew) can disagree, so the row follows the chain.
+ */
+async function practiceOnChain(provider: { id: number; address: string; isPractice: boolean }) {
+  const onChain = await publicClient()
+    .readContract({ address: addr("ProviderRegistry"), abi: providerRegistryAbi, functionName: "isPractice", args: [getAddress(provider.address)] })
+    .catch(() => provider.isPractice);
+  if (onChain !== provider.isPractice) await db().update(providers).set({ isPractice: onChain }).where(eq(providers.id, provider.id));
+  return onChain;
+}
+
 export const draftRoutes = new Hono<AppEnv>()
   /** The Mini App confirm screen: parsed fields plus the provider's defaults. */
   .get("/drafts/:id", requireUser, async (c) => {
     const { draft, provider } = await ownedDraft(Number(c.req.param("id")), getAuth(c));
+    const practice = await practiceOnChain(provider);
     return c.json({
       id: draft.id,
       status: draft.status,
@@ -112,7 +125,7 @@ export const draftRoutes = new Hono<AppEnv>()
       parsed: draft.parsedJson,
       parser: draft.parser,
       signalId: draft.signalId?.toString() ?? null,
-      provider: { handle: provider.handle, address: provider.address, defaultPrice: provider.defaultPrice, practice: provider.isPractice },
+      provider: { handle: provider.handle, address: provider.address, defaultPrice: provider.defaultPrice, practice },
       createdAt: draft.createdAt.toISOString(),
     });
   })
@@ -152,6 +165,9 @@ export const draftRoutes = new Hono<AppEnv>()
     if (draft.status === "committed") throw conflict("already_committed", "Draft already committed");
     const input = SignalInput.safeParse(await c.req.json().catch(() => ({})));
     if (!input.success) throw badRequest("bad_signal", input.error.issues.map((i) => i.message).join("; "));
+
+    if (input.data.pricePerSub > 0n && (await practiceOnChain(provider)))
+      throw badRequest("practice_must_be_free", "This is a practice profile: its signals are free. Set the price to 0.");
 
     const providerAddr = getAddress(provider.address);
     const salt = random32Hex();
