@@ -10,6 +10,11 @@ import type { AppEnv } from "../auth/context.js";
 const withTimeout = <T>(p: Promise<T>, ms = 3000) =>
   Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
+/** A slow public RPC node is not a low balance: reuse the last reading for this long, so the
+ *  5-minute monitor doesn't page about the relayer whenever one read times out. */
+const BALANCE_STALE_MS = 5 * 60_000;
+let lastBalance: { wei: bigint; at: number } | null = null;
+
 /** Liveness + dependencies: DB, RPC, relayer balance vs threshold. 503 if DB or RPC is down. */
 export async function health() {
   const e = env();
@@ -18,7 +23,9 @@ export async function health() {
     withTimeout(publicClient().getBlockNumber()),
     withTimeout(relayerBalance()),
   ]);
-  const balance = bal.status === "fulfilled" ? bal.value : null;
+  if (bal.status === "fulfilled" && bal.value != null) lastBalance = { wei: bal.value, at: Date.now() };
+  const balance =
+    bal.status === "fulfilled" ? bal.value : lastBalance && Date.now() - lastBalance.at < BALANCE_STALE_MS ? lastBalance.wei : null;
   const relayer = relayerAccount();
   const relayerOk = balance != null && balance >= e.RELAYER_MIN_BALANCE_WEI;
   const ok = dbr.status === "fulfilled" && rpc.status === "fulfilled";

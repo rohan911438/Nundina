@@ -39,6 +39,8 @@ const oracle: Oracle =
 const keeper = new Keeper(pub as any, a, new KeeperApi(e.API_URL, e.INTERNAL_SECRET), tx, oracle, history, metrics, log);
 /** 960 one-minute candles: inside both exchanges' 1000-per-request limit. */
 const BACKFILL_S = 960 * 60;
+/** How long the primary exchange must be silent before a market falls back to its backup venue. */
+const PRIMARY_SILENT_MS = 30_000;
 const startedAt = Date.now();
 const minBalance = parseEther(String(e.KEEPER_MIN_BALANCE_HSK));
 
@@ -60,12 +62,20 @@ function every(ms: number, fn: () => Promise<unknown>) {
 async function main() {
   log("info", "keeper starting", { chainId: e.CHAIN_ID, keeper: account.address, oracle: oracle.kind });
   // catch up after downtime: the last 16 h of 1-minute candles (one request per market)
-  await backfill(Math.floor(Date.now() / 1000) - BACKFILL_S, (m, lo, hi, ts) => history.addRange(m, lo, hi, ts)).catch((err) =>
-    log("warn", "backfill failed", { error: (err as Error).message }),
-  );
+  const unfilled = await backfill(Math.floor(Date.now() / 1000) - BACKFILL_S, (m, lo, hi, ts) => history.addRange(m, lo, hi, ts)).catch((err) => {
+    log("warn", "backfill failed", { error: (err as Error).message });
+    return [];
+  });
+  if (unfilled.length) log("warn", "backfill: no venue reachable", { markets: unfilled });
   await keeper.runAll();
 
-  const onTrade = (m: string, p: bigint, ts: number) => keeper.onTrade(m, p, ts);
+  // a backup venue's trades count only while the primary venue has been silent for that market
+  const lastPrimary = new Map<string, number>();
+  const onTrade = (m: string, p: bigint, ts: number, primary: boolean) => {
+    if (primary) lastPrimary.set(m, Date.now());
+    else if (Date.now() - (lastPrimary.get(m) ?? 0) < PRIMARY_SILENT_MS) return;
+    keeper.onTrade(m, p, ts);
+  };
   const streams = [binanceTrades(onTrade, log), gateTrades(onTrade, log)];
 
   const timers = [
