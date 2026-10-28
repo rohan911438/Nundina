@@ -28,7 +28,7 @@ const GAS_MULTIPLIER = 120n; // %
 const BUMP = 115n; // %
 
 export interface RelayRequest {
-  /** Idempotency key, e.g. `commit:draft:42`. Same key → same transaction. */
+  /** Idempotency key, e.g. `commit:0x<commitHash>`. Same key → same transaction. */
   key: string;
   purpose: string;
   to: Address;

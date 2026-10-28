@@ -5,16 +5,18 @@ import { z } from "zod";
 import {
   COMMIT_AUTH_TYPES,
   MARKETS,
+  deserializeSignal,
   hashSignal,
   makeSignalSchema,
   marketById,
   nundinaDomain,
   serializeSignal,
+  type SerializedSignal,
   type Signal,
 } from "@nundina/shared";
 import { providerRegistryAbi, signalBookAbi } from "@nundina/shared/abis";
 import { db } from "../db/client.js";
-import { providers, signalDrafts, signals } from "../db/schema.js";
+import { providers, relayedTxs, signalDrafts, signals } from "../db/schema.js";
 import { env } from "../env.js";
 import { getAuth, requireUser, type AppEnv, type Auth } from "../auth/context.js";
 import { addr, publicClient } from "../chain/clients.js";
@@ -113,6 +115,88 @@ async function practiceOnChain(provider: { id: number; address: string; isPracti
   return onChain;
 }
 
+const commitKey = (commitHash: string) => `commit:${commitHash.toLowerCase()}`;
+const cipherUriOf = (draftId: number) => `nundina://drafts/${draftId}`;
+
+/** Block time of the commit. A load-balanced RPC can lag the node that returned the receipt. */
+async function blockTime(blockNumber: bigint) {
+  for (let i = 0; i < 5; i++) {
+    const b = await publicClient().getBlock({ blockNumber }).catch(() => null);
+    if (b) return new Date(Number(b.timestamp) * 1000);
+    await new Promise((res) => setTimeout(res, 1000));
+  }
+  return new Date(); // the projector overwrites it with the chain's value
+}
+
+type DraftRow = typeof signalDrafts.$inferSelect;
+type ProviderRow = typeof providers.$inferSelect;
+
+/**
+ * Stores a mined commit: ciphertext, key and salt on the signal row, draft marked committed.
+ * Refuses (and leaves the draft open) if the on-chain commitment isn't this signal, so key material
+ * is never silently dropped.
+ */
+async function recordCommit(draft: DraftRow, provider: ProviderRow, signal: Signal, commitHash: Hex, hash: Hex) {
+  const receipt = await publicClient().waitForTransactionReceipt({ hash });
+  const [ev] = parseEventLogs({ abi: signalBookAbi, eventName: "SignalCommitted", logs: receipt.logs });
+  if (!ev) throw new ApiError(502, "no_event", "Commit mined but SignalCommitted not found", { hash });
+  const args = ev.args as { id: bigint; oraclePrice: bigint; commitHash?: Hex };
+  if (args.commitHash && args.commitHash.toLowerCase() !== commitHash.toLowerCase())
+    throw new ApiError(409, "commit_mismatch", "The mined commit is a different signal", { signalId: args.id.toString() });
+  const committedAt = await blockTime(receipt.blockNumber);
+  const enc = encryptSignal(signal);
+  const cipherUri = cipherUriOf(draft.id);
+  const material = {
+    ciphertext: enc.ciphertext,
+    aesKeyEnc: enc.aesKeyEnc,
+    saltEnc: draft.saltEnc,
+    cipherUri,
+    commitTx: hash,
+    tgChatId: draft.sourceChatId,
+    tgMessageId: draft.sourceMessageId,
+  };
+  await db().transaction(async (tx) => {
+    const rows = await tx
+      .insert(signals)
+      .values({
+        ...material,
+        id: args.id,
+        providerId: provider.id,
+        commitHash,
+        market: marketHex(signal.market).label,
+        marketId: signal.market,
+        validUntil: new Date(Number(signal.validUntil) * 1000),
+        committedAt,
+        price: signal.pricePerSub.toString(),
+        oraclePrice: args.oraclePrice.toString(),
+        status: "COMMITTED",
+        upstreamJson: signal.upstream.map((id, i) => ({ id: id.toString(), bps: signal.upstreamBps[i] ?? 0 })),
+      })
+      // the indexer may have inserted the row from the SignalCommitted event first: fill in the
+      // off-chain material, but only for the same commitment
+      .onConflictDoUpdate({ target: signals.id, set: { ...material, updatedAt: new Date() }, setWhere: eq(signals.commitHash, commitHash) })
+      .returning({ id: signals.id });
+    if (!rows.length) throw new ApiError(409, "commit_mismatch", "Signal row belongs to a different commitment", { signalId: args.id.toString() });
+    await tx.update(signalDrafts).set({ status: "committed", signalId: args.id, updatedAt: new Date() }).where(eq(signalDrafts.id, draft.id));
+  });
+  await enqueue(JOBS.notifyLocked, { signalId: args.id.toString(), providerId: provider.id }, `locked:${args.id}`);
+  await scheduleSafetyReveal(args.id, new Date(Number(signal.validUntil) * 1000));
+  return args.id;
+}
+
+/**
+ * The draft's prepared commitment is already on its way on-chain (an earlier confirm got as far as
+ * relaying, then failed): finish recording it instead of preparing a new salt, which would orphan it.
+ */
+async function finishInFlight(draft: DraftRow, provider: ProviderRow) {
+  if (!draft.commitHash || !draft.saltEnc || !draft.signalJson) return null;
+  const sent = await db().query.relayedTxs.findFirst({ where: eq(relayedTxs.idempotencyKey, commitKey(draft.commitHash)) });
+  if (!sent || (sent.status !== "sent" && sent.status !== "mined")) return null;
+  const r = await relay({ key: sent.idempotencyKey, purpose: "commit", to: sent.to as Address, data: sent.data as Hex });
+  const signal = deserializeSignal({ ...(draft.signalJson as Omit<SerializedSignal, "salt">), salt: unsealHex(draft.saltEnc) } as SerializedSignal);
+  return recordCommit(draft, provider, signal, draft.commitHash as Hex, r.hash);
+}
+
 export const draftRoutes = new Hono<AppEnv>()
   /** The Mini App confirm screen: parsed fields plus the provider's defaults. */
   .get("/drafts/:id", requireUser, async (c) => {
@@ -162,7 +246,9 @@ export const draftRoutes = new Hono<AppEnv>()
    */
   .post("/drafts/:id/prepare", requireUser, async (c) => {
     const { draft, provider } = await ownedDraft(Number(c.req.param("id")), getAuth(c));
-    if (draft.status === "committed") throw conflict("already_committed", "Draft already committed");
+    if (draft.status === "committed") throw new ApiError(409, "already_committed", "Draft already committed", { signalId: draft.signalId?.toString() });
+    const inFlight = await finishInFlight(draft, provider);
+    if (inFlight != null) throw new ApiError(409, "already_committed", "This signal is already locked on-chain", { signalId: inFlight.toString() });
     const input = SignalInput.safeParse(await c.req.json().catch(() => ({})));
     if (!input.success) throw badRequest("bad_signal", input.error.issues.map((i) => i.message).join("; "));
 
@@ -263,69 +349,14 @@ export const draftRoutes = new Hono<AppEnv>()
       if (!code || code === "0x") throw badRequest("bad_signature", "Signature does not match the provider");
     }
 
-    const enc = encryptSignal(signal);
-    const cipherUri = `nundina://drafts/${draft.id}`;
     const data = encodeFunctionData({
       abi: signalBookAbi,
       functionName: "commit",
-      args: [auth, providerSig as Hex, signal.upstream, signal.upstreamBps, cipherUri],
+      args: [auth, providerSig as Hex, signal.upstream, signal.upstreamBps, cipherUriOf(draft.id)],
     });
-    const result = await relay({ key: `commit:draft:${draft.id}`, purpose: "commit", to: signalBook, data });
-
-    const receipt = result.receipt ?? (await publicClient().getTransactionReceipt({ hash: result.hash }));
-    const [ev] = parseEventLogs({ abi: signalBookAbi, eventName: "SignalCommitted", logs: receipt.logs });
-    if (!ev) throw new ApiError(502, "no_event", "Commit mined but SignalCommitted not found", { hash: result.hash });
-    const args = ev.args as { id: bigint; oraclePrice: bigint };
-    const block = await publicClient().getBlock({ blockNumber: receipt.blockNumber });
-
-    const market = marketHex(signal.market).label;
-    await db().transaction(async (tx) => {
-      await tx
-        .insert(signals)
-        .values({
-          id: args.id,
-          providerId: provider.id,
-          commitHash,
-          market,
-          marketId: signal.market,
-          validUntil: new Date(Number(signal.validUntil) * 1000),
-          committedAt: new Date(Number(block.timestamp) * 1000),
-          price: signal.pricePerSub.toString(),
-          oraclePrice: args.oraclePrice.toString(),
-          cipherUri,
-          ciphertext: enc.ciphertext,
-          aesKeyEnc: enc.aesKeyEnc,
-          saltEnc: draft.saltEnc,
-          status: "COMMITTED",
-          upstreamJson: signal.upstream.map((id, i) => ({ id: id.toString(), bps: signal.upstreamBps[i] ?? 0 })),
-          commitTx: result.hash,
-          tgChatId: draft.sourceChatId,
-          tgMessageId: draft.sourceMessageId,
-        })
-        // The indexer (prompt 08) may have inserted the row from the SignalCommitted event first:
-        // fill in the off-chain material, but only for the same commitment.
-        .onConflictDoUpdate({
-          target: signals.id,
-          set: {
-            ciphertext: enc.ciphertext,
-            aesKeyEnc: enc.aesKeyEnc,
-            saltEnc: draft.saltEnc,
-            cipherUri,
-            commitTx: result.hash,
-            tgChatId: draft.sourceChatId,
-            tgMessageId: draft.sourceMessageId,
-            updatedAt: new Date(),
-          },
-          setWhere: eq(signals.commitHash, commitHash),
-        });
-      await tx
-        .update(signalDrafts)
-        .set({ status: "committed", signalId: args.id, updatedAt: new Date() })
-        .where(eq(signalDrafts.id, draft.id));
-    });
-    await enqueue(JOBS.notifyLocked, { signalId: args.id.toString(), providerId: provider.id }, `locked:${args.id}`);
-    await scheduleSafetyReveal(args.id, new Date(Number(signal.validUntil) * 1000));
-
-    return c.json({ signalId: args.id.toString(), commitHash, txHash: result.hash, status: "COMMITTED" }, 201);
+    // keyed by the commitment: a failed attempt doesn't block a corrected one, a retry never sends twice
+    const result = await relay({ key: commitKey(commitHash), purpose: "commit", to: signalBook, data });
+    const signalId = await recordCommit(draft, provider, signal, commitHash, result.hash);
+    return c.json({ signalId: signalId.toString(), commitHash, txHash: result.hash, status: "COMMITTED" }, 201);
   });
 

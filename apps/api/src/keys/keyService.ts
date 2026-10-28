@@ -51,7 +51,7 @@ export async function wrapKeyFor(purchaseId: string, channel: "web" | "telegram"
   const pubkey = agent?.encPubkey ?? buyer?.pubkey;
   if (!pubkey) throw new ApiError(409, "no_encryption_key", "Buyer has no registered encryption key");
   const s = await db().query.signals.findFirst({ where: eq(signals.id, p.signalId) });
-  if (!s?.aesKeyEnc) throw new ApiError(409, "no_key_material", "Signal has no key material");
+  if (!s?.aesKeyEnc) throw new ApiError(409, "no_key_material", "This signal can't be unlocked: its key was not saved when it was locked. Pick another signal; the provider can post it again.");
 
   const wrapped = wrapKey(pubkey, unseal(s.aesKeyEnc));
   const [row] = await db()
