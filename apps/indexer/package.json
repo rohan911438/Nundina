@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx --env-file-if-exists=../../.env src/run.ts dev",
-    "start": "tsx --env-file-if-exists=../../.env src/run.ts start",
+    "dev": "tsx --env-file-if-exists=../../.env projector/run.ts dev",
+    "start": "tsx --env-file-if-exists=../../.env projector/run.ts start",
     "ponder": "ponder",
-    "sync": "tsx --env-file-if-exists=../../.env src/sync.ts",
-    "reproject": "tsx --env-file-if-exists=../../.env src/sync.ts --reproject",
+    "sync": "tsx --env-file-if-exists=../../.env projector/sync.ts",
+    "reproject": "tsx --env-file-if-exists=../../.env projector/sync.ts --reproject",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

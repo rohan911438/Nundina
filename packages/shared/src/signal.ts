@@ -37,9 +37,18 @@ export interface MarketInfo {
   aproFeed: Address;
   supraPairId: number | null;
   /** Off-chain price stream used for charts and early touch detection. */
-  cex: { venue: "binance" | "gate"; symbol: string; ws: string };
+  cex: CexListing;
+  /** Same pair on another venue, used only while the primary stream is silent (e.g. Binance is
+   *  blocked in some regions). */
+  backupCex?: CexListing;
   /** Display decimals for prices. */
   displayDecimals: number;
+}
+
+export interface CexListing {
+  venue: "binance" | "gate";
+  symbol: string;
+  ws: string;
 }
 
 export const MARKETS = {
@@ -50,6 +59,7 @@ export const MARKETS = {
     aproFeed: EXTERNAL.aproBtcUsd,
     supraPairId: 0,
     cex: { venue: "binance", symbol: "BTCUSDT", ws: "btcusdt" },
+    backupCex: { venue: "gate", symbol: "BTC_USDT", ws: "BTC_USDT" },
     displayDecimals: 2,
   },
   "HSK/USD": {

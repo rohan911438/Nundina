@@ -11,7 +11,7 @@ type AnyEvent = {
 };
 type AnyContext = { chain: { id: number }; db: { insert: (t: typeof onchainEvent) => any } };
 
-// Every indexed event is stored raw; projection into API tables happens in src/sync.ts.
+// Every indexed event is stored raw; projection into API tables happens in projector/sync.ts.
 for (const [contract, events] of Object.entries(INDEXED_EVENTS)) {
   for (const name of events) {
     (ponder.on as (key: string, fn: (a: { event: AnyEvent; context: AnyContext }) => Promise<void>) => void)(

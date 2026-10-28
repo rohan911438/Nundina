@@ -272,7 +272,7 @@
   }
 }
 .page-in {
-  animation: page-in 0.45s var(--ease-out) backwards;
+  animation: page-in 0.2s var(--ease-out) backwards;
 }
 
 /* stage progress in checkout flows */

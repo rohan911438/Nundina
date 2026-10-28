@@ -9,7 +9,7 @@
 | Web + Mini App | ✅ Public pages, dashboards, wallet e2e (Playwright) |
 | Agents + MCP | ✅ 3 strategies, execution, aggregator A2A (local WIN with payouts), MCP server |
 | CI | ✅ `.github/workflows/ci.yml` (first run happens on push) |
-| HSP credentials | ❌ Not received. Mock rail in use (NEEDS #7) |
+| HSP credentials | ❌ Not received. Direct rail in use: HSP-style mandate + real on-chain transfer, verified by the API; gateway rail switches on with the keys (NEEDS #7) |
 | Mainnet funds, hosting, alerts chat | ❌ NEEDS #21–23 |
 | Real providers / traction | ❌ Not started (NEEDS #24, `TRACTION.md`) |
 | Video, deck, submission | ❌ Runbook and outline ready (`docs/DEMO.md`, `docs/PITCH.md`); NEEDS #25–26 |

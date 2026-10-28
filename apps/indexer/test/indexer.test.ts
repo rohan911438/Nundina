@@ -22,7 +22,7 @@ import { processVerify } from "../../api/src/jobs/hspRetry.js";
 import { buyAndPay, newBuyer } from "../../api/test/buyer.js";
 import { canRunChain, keys, startChain, type Chain } from "../../api/test/chain.js";
 import { getJson, makeProvider } from "../../api/test/helpers.js";
-import { resetProjections, syncOnce } from "../src/sync.js";
+import { resetProjections, syncOnce } from "../projector/sync.js";
 
 const PRICE = 1_000_000n;
 const SCHEMA = "idx_test";

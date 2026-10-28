@@ -1,7 +1,7 @@
-import { BadgeCheck, Bot, Eye, Hourglass, Layers, Wallet } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Bot, Eye, Hourglass, Layers, Send, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-export type BadgeKind = "verified" | "agent" | "aggregator" | "probation" | "ownCalls" | "observed" | "practice";
+export type BadgeKind = "verified" | "agent" | "aggregator" | "probation" | "ownCalls" | "observed" | "practice" | "channel" | "lookalike";
 
 const BADGES: Record<BadgeKind, { label: string; title: string; Icon: typeof Bot; cls: string }> = {
   verified: { label: "Verified", title: "KYC attested through HSP", Icon: BadgeCheck, cls: "text-accent" },
@@ -11,6 +11,8 @@ const BADGES: Record<BadgeKind, { label: string; title: string; Icon: typeof Bot
   ownCalls: { label: "Trades own calls", title: "Provider wallet trades its own signals", Icon: Wallet, cls: "text-win" },
   observed: { label: "Observed", title: "Scored from a public channel; not committed on-chain", Icon: Eye, cls: "text-muted" },
   practice: { label: "Practice", title: "Practice profile: no payments", Icon: Hourglass, cls: "text-muted" },
+  channel: { label: "Channel verified", title: "Telegram confirms this provider owns or admins the linked channel", Icon: Send, cls: "text-win" },
+  lookalike: { label: "Lookalike name", title: "The channel name resembles an earlier provider: make sure this is who you think", Icon: AlertTriangle, cls: "text-loss border-loss/40" },
 };
 
 export function Badge({ kind, className, compact }: { kind: BadgeKind; className?: string; compact?: boolean }) {
@@ -31,9 +33,19 @@ export function Badge({ kind, className, compact }: { kind: BadgeKind; className
 }
 
 /** The badges a provider earns, in display order. */
-export function providerBadges(p: { verified: boolean; kind: string; observed: boolean; isPractice: boolean; score: { probation: boolean } }) {
+export function providerBadges(p: {
+  verified: boolean;
+  kind: string;
+  observed: boolean;
+  isPractice: boolean;
+  score: { probation: boolean };
+  channel?: unknown;
+  lookalikeOf?: string | null;
+}) {
   const out: BadgeKind[] = [];
+  if (p.lookalikeOf) out.push("lookalike");
   if (p.verified) out.push("verified");
+  if (p.channel) out.push("channel");
   if (p.kind === "agent") out.push("agent");
   if (p.kind === "aggregator") out.push("aggregator");
   if (p.observed) out.push("observed");

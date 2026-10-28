@@ -1,7 +1,7 @@
 import { index, onchainTable } from "ponder";
 
 /**
- * Raw events, one row per log. Ponder owns this table (reorgs roll it back); `src/sync.ts`
+ * Raw events, one row per log. Ponder owns this table (reorgs roll it back); `projector/sync.ts`
  * projects it into the API tables and can rebuild them from scratch (`pnpm reproject`).
  */
 export const onchainEvent = onchainTable(

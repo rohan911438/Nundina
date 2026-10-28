@@ -30,12 +30,27 @@ describe("bot handlers", () => {
     const code = steps.match(/\/link ([0-9A-F]{8})/)![1]!;
 
     h.reset();
+    h.channel.admins = [{ id: PROVIDER_TG, status: "creator" }];
     await h.channelPost(CHANNEL, 10, `/link ${code}`);
     const p = await db().query.providers.findFirst({ where: eq(providers.id, provider.providerId) });
     expect(p!.channelId).toBe(CHANNEL);
     expect(p!.channelTitle).toBe("Alpha Calls");
+    expect(p!.channelUsername).toBe("alphacalls");
+    expect(p!.channelRole).toBe("creator");
     expect(h.calls.some((c) => c.method === "deleteMessage" && c.payload.message_id === 10)).toBe(true);
-    expect(h.sent(PROVIDER_TG).at(-1)!.payload.text).toMatch(/Linked <b>Alpha Calls<\/b>/);
+    expect(h.sent(PROVIDER_TG).some((m) => /Alpha Calls<\/b> is verified/.test(m.payload.text))).toBe(true);
+    expect(h.sent(CHANNEL).at(-1)!.payload.text).toMatch(/verified on Nundina/);
+  });
+
+  it("a valid code still can't link a channel the provider doesn't admin", async () => {
+    const other = await telegramProvider(7002);
+    await h.dm(7002, "/link_channel");
+    const code = (h.sent(7002).at(-1)!.payload.text as string).match(/\/link ([0-9A-F]{8})/)![1]!;
+    h.channel.admins = [{ id: 7777, status: "creator" }]; // someone else's channel
+    await h.channelPost(-1009990001, 12, `/link ${code}`);
+    const p = await db().query.providers.findFirst({ where: eq(providers.id, other.providerId) });
+    expect(p!.channelId).toBeNull();
+    expect(h.sent(-1009990001).at(-1)!.payload.text).toMatch(/isn't an owner or admin/);
   });
 
   it("refuses to link when the bot is not an admin who can post", async () => {
@@ -44,9 +59,16 @@ describe("bot handlers", () => {
     expect(h2.sent(-100999).at(-1)!.payload.text).toMatch(/admin/);
   });
 
-  it("a non-provider gets told to register first", async () => {
+  it("someone without a linked wallet is sent to provider setup", async () => {
     await h.dm(7999, "/link_channel");
-    expect(h.sent(7999).at(-1)!.payload.text).toMatch(/not registered as a provider/);
+    expect(h.sent(7999).at(-1)!.payload.text).toMatch(/isn't linked to a wallet/);
+  });
+
+  it("/link <code> sent in a DM explains it goes in the channel", async () => {
+    await h.dm(PROVIDER_TG, "/link 06B8E7E4");
+    const m = h.sent(PROVIDER_TG).at(-1)!.payload;
+    expect(m.text).toMatch(/goes in your <b>channel<\/b>/);
+    expect(m.reply_markup.inline_keyboard[0][0].url).toMatch(/\?startchannel&admin=post_messages/);
   });
 
   it("signal post in a linked channel → draft + confirm DM to the provider", async () => {

@@ -50,6 +50,13 @@
       "when": 1793108410783,
       "tag": "0006_agent_credits",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793175888357,
+      "tag": "0007_telegram_verification",
+      "breakpoints": true
     }
   ]
 }

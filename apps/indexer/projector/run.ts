@@ -1,9 +1,11 @@
 /**
- * Runs Ponder (raw events) and the projector (src/sync.ts) side by side.
- *   tsx src/run.ts dev|start
+ * Runs Ponder (raw events) and the projector (projector/sync.ts) side by side.
+ *   tsx projector/run.ts dev|start
+ * Lives outside src/ on purpose: Ponder loads every file in src/ as indexing code, and loading this
+ * one would start another Ponder from inside Ponder, again and again.
  * Ponder's GraphQL is bound to 127.0.0.1:INDEXER_PORT (internal only).
  */
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +28,11 @@ let down = false;
 function shutdown(code: number) {
   if (down) return;
   down = true;
-  for (const c of children) c.kill();
+  // with shell: true, kill() only stops the cmd.exe wrapper on Windows and Ponder/tsx keep running
+  for (const c of children) {
+    if (process.platform === "win32" && c.pid) spawnSync("taskkill", ["/PID", String(c.pid), "/T", "/F"], { stdio: "ignore" });
+    else c.kill();
+  }
   process.exit(code);
 }
 process.on("SIGINT", () => shutdown(0));
@@ -44,4 +50,4 @@ run("pnpm", [
   "127.0.0.1",
   ...(mode === "dev" ? ["--disable-ui"] : []),
 ]);
-run("pnpm", ["exec", "tsx", "src/sync.ts"]);
+run("pnpm", ["exec", "tsx", "projector/sync.ts"]);

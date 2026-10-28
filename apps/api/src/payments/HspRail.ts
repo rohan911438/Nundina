@@ -6,7 +6,7 @@ import { env } from "../env.js";
 import { addr } from "../chain/clients.js";
 import { ApiError, badRequest, notFound } from "../lib/errors.js";
 import { log } from "../lib/log.js";
-import { buildMandate, checkMandateSig } from "./MockRail.js";
+import { buildMandate, checkMandateSig } from "./DirectRail.js";
 import { observeTransfer } from "./observe.js";
 import {
   mandateHash,

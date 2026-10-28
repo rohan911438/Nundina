@@ -67,13 +67,37 @@ export default async function ProviderPage({ params }: Props) {
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{p.displayName}</h1>
             <p className="mt-1 text-muted">
               @{p.handle}
-              {p.channelTitle ? <> · {p.channelTitle}</> : null}
+              {p.channel ? (
+                <>
+                  {" · "}
+                  {p.channel.url ? (
+                    <a href={p.channel.url} target="_blank" rel="noreferrer noopener" className="text-text hover:text-accent" data-testid="verified-channel">
+                      {p.channel.title ?? `@${p.channel.username}`}
+                      {p.channel.username ? <span className="text-muted"> (@{p.channel.username})</span> : null}
+                    </a>
+                  ) : (
+                    <span className="text-text">{p.channel.title}</span>
+                  )}
+                  {p.channel.members != null ? <> · {p.channel.members.toLocaleString()} subscribers</> : null}
+                </>
+              ) : p.channelTitle && p.observed ? (
+                <> · {p.channelTitle}</>
+              ) : null}
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {providerBadges({ ...p, score }).map((b) => (
                 <Badge key={b} kind={b} />
               ))}
             </div>
+            {p.lookalikeOf ? (
+              <p role="note" className="mt-3 max-w-xl rounded-xl border border-loss/40 bg-loss/[0.06] px-3 py-2 text-sm">
+                Heads up: this name resembles{" "}
+                <a href={`/p/${p.lookalikeOf}`} className="font-medium text-accent hover:underline">
+                  @{p.lookalikeOf}
+                </a>
+                , an earlier provider. Check the channel link before you buy.
+              </p>
+            ) : null}
             {p.bio ? <p className="mt-4 max-w-xl text-pretty text-sm text-muted">{p.bio}</p> : null}
           </div>
         </div>

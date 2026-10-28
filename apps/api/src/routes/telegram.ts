@@ -7,6 +7,9 @@ import { requireInternal, type AppEnv } from "../auth/context.js";
 import { userIdForTelegram } from "../auth/internal.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { publicProvider, publicSignal } from "../lib/serialize.js";
+import { linkedChannels, providerOfTelegram, unverifyChannel, verifyChannel } from "../services/channelVerify.js";
+import { redeemInBot, startLinkFromBot } from "../services/telegramAccount.js";
+import { ChannelFactsBody } from "./providers.js";
 
 /** Purchases that paid (buyers get the unlock DM and the result DM). */
 const PAID = ["CREDITED", "KEY_SENT", "SETTLED_WIN", "REFUNDED"];
@@ -38,6 +41,39 @@ export const telegramRoutes = new Hono<AppEnv>()
     const p = await db().query.providers.findFirst({ where: eq(providers.userId, userId) });
     return c.json({ userId, wallet: u?.wallet ?? null, hasEncryptionKey: Boolean(u?.pubkey), provider: p ? { handle: p.handle, channelId: p.channelId } : null });
   })
+  /** `/start acct_<token>`: the web asked to link this Telegram account to its wallet. */
+  .post("/internal/telegram/account-links/redeem", async (c) => {
+    const b = z
+      .object({ token: z.string().min(8), telegramId: z.number().int(), username: z.string().nullish() })
+      .safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) throw badRequest("bad_body", "token and telegramId required");
+    return c.json(await redeemInBot(b.data.token, b.data.telegramId, b.data.username));
+  })
+  /** `/connect` in the bot: a token for a web link that a signed-in wallet redeems. */
+  .post("/internal/telegram/account-links", async (c) => {
+    const b = z.object({ telegramId: z.number().int(), username: z.string().nullish() }).safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) throw badRequest("bad_body", "telegramId required");
+    return c.json(await startLinkFromBot(b.data.telegramId, b.data.username));
+  })
+  /**
+   * The bot was made admin of a channel by `telegramId`: link it to that person's provider profile
+   * if Telegram's admin list says they own or admin it (re-checks refresh it the same way).
+   */
+  .post("/internal/telegram/channels/verify", async (c) => {
+    const b = ChannelFactsBody.extend({ telegramId: z.number().int() }).safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) throw badRequest("bad_body", b.error.issues.map((i) => i.message).join("; "));
+    const { telegramId, ...facts } = b.data;
+    const p = await providerOfTelegram(telegramId);
+    if (!p) throw notFound("Provider profile for this Telegram account");
+    const r = await verifyChannel(p.id, facts);
+    return c.json({ provider: publicProvider(r.provider), role: r.role, lookalikeOf: r.lookalikeOf, telegramId: r.telegramId });
+  })
+  .post("/internal/telegram/channels/:chatId/unverify", async (c) => {
+    const r = await unverifyChannel(Number(c.req.param("chatId")));
+    if (!r) throw notFound("Linked channel");
+    return c.json(r);
+  })
+  .get("/internal/telegram/channels", async (c) => c.json({ items: await linkedChannels() }))
   /** The provider whose linked channel this is (the bot ignores channels without one). */
   .get("/internal/telegram/channels/:chatId", async (c) => {
     const p = await db().query.providers.findFirst({ where: eq(providers.channelId, Number(c.req.param("chatId"))) });

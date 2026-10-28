@@ -12,6 +12,8 @@ import { addr } from "../chain/clients.js";
 import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { bytesToHex, randomBytes } from "../lib/crypto.js";
 import { PROBATION_N, publicProvider, publicSignal, scoreView } from "../lib/serialize.js";
+import { verifyChannel } from "../services/channelVerify.js";
+import { redeemOnWeb, startLinkFromWeb } from "../services/telegramAccount.js";
 
 const LINK_CODE_TTL_MS = 15 * 60 * 1000;
 
@@ -36,11 +38,14 @@ const SettingsBody = z.object({
   practice: z.boolean().optional(),
 });
 
-const LinkBody = z.object({
-  code: z.string().min(6),
+export const ChannelFactsBody = z.object({
   channelId: z.number().int(),
-  channelTitle: z.string().optional(),
+  title: z.string().default(""),
+  username: z.string().nullish(),
+  members: z.number().int().nullish(),
+  admins: z.array(z.object({ id: z.number().int(), status: z.enum(["creator", "administrator"]) })),
 });
+const LinkBody = ChannelFactsBody.extend({ code: z.string().min(6) });
 
 /** The provider row of the signed-in user, or 404. */
 export async function myProvider(userId: number | undefined) {
@@ -130,8 +135,8 @@ export const providerRoutes = new Hono<AppEnv>()
   })
   .post("/providers/link-telegram", requireInternal, async (c) => {
     const body = LinkBody.safeParse(await c.req.json().catch(() => ({})));
-    if (!body.success) throw badRequest("bad_body", "code and channelId required");
-    const { code, channelId, channelTitle } = body.data;
+    if (!body.success) throw badRequest("bad_body", "code, channelId and admins required");
+    const { code, ...facts } = body.data;
     const [used] = await db()
       .update(telegramLinkCodes)
       .set({ usedAt: new Date() })
@@ -144,12 +149,23 @@ export const providerRoutes = new Hono<AppEnv>()
       )
       .returning();
     if (!used) throw badRequest("bad_code", "Code invalid or expired");
-    const [p] = await db()
-      .update(providers)
-      .set({ channelId, channelTitle })
-      .where(eq(providers.id, used.providerId))
-      .returning();
-    return c.json({ provider: publicProvider(p!) });
+    // the code says which profile; ownership still has to come from Telegram's admin list
+    const r = await verifyChannel(used.providerId, facts);
+    return c.json({ provider: publicProvider(r.provider), role: r.role, lookalikeOf: r.lookalikeOf, telegramId: r.telegramId });
+  })
+  /** Web starts a Telegram account link: open t.me/<bot>?start=acct_<token> and the bot finishes it. */
+  .post("/me/telegram/link", requireUser, async (c) => {
+    const a = getAuth(c);
+    if (!a.wallet) throw badRequest("wallet_required", "Sign in with your wallet first");
+    return c.json(await startLinkFromWeb(a.userId!));
+  })
+  /** Web finishes a link the bot started with /connect. */
+  .post("/me/telegram/redeem", requireUser, async (c) => {
+    const a = getAuth(c);
+    if (!a.wallet) throw badRequest("wallet_required", "Sign in with your wallet first");
+    const b = z.object({ token: z.string().min(8) }).safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) throw badRequest("bad_body", "token required");
+    return c.json(await redeemOnWeb(b.data.token, a.userId!));
   })
   .get("/me/provider", requireUser, async (c) => {
     const p = await myProvider(getAuth(c).userId);

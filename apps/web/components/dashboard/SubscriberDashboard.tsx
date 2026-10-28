@@ -13,6 +13,7 @@ import { ago, explorer, pct, price, short, usd } from "@/lib/format";
 import { me, type SubscriberView } from "@/lib/session";
 import { decryptPurchase, KEYED_STATUSES } from "@/lib/unlock";
 import { useWallet } from "@/lib/wallet/useWallet";
+import { TelegramConnect } from "@/components/flows/TelegramConnect";
 import { WalletGate } from "@/components/flows/WalletGate";
 
 type Row = SubscriberView["purchases"][number];
@@ -23,6 +24,20 @@ export function SubscriberDashboard({ compact = false }: { compact?: boolean }) 
     <WalletGate title="Connect to see your signals">
       <Inner compact={compact} />
     </WalletGate>
+  );
+}
+
+/** Unlock and result DMs need the bot to know this wallet's Telegram account. */
+function TelegramNudge() {
+  const s = useQuery({ queryKey: ["session"], queryFn: me.session, retry: false });
+  if (!s.data || s.data.telegram) return null;
+  return (
+    <section className="rounded-2xl border border-border bg-surface p-5">
+      <h2 className="font-medium">Get unlocks and results in Telegram</h2>
+      <div className="mt-3">
+        <TelegramConnect hint="Link your Telegram account and the bot DMs you when a signal you bought unlocks or settles." />
+      </div>
+    </section>
   );
 }
 
@@ -47,6 +62,7 @@ function Inner({ compact }: { compact: boolean }) {
           ]}
         />
       ) : null}
+      {!compact ? <TelegramNudge /> : null}
 
       <section>
         <h2 className="mb-3 font-medium">Active</h2>

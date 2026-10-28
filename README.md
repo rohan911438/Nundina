@@ -94,7 +94,7 @@ Full design: [`Idea/05-architecture.md`](Idea/05-architecture.md)
 | Layer | Tech |
 |---|---|
 | Contracts | Solidity, Foundry (tests fork HashKey mainnet), OpenZeppelin |
-| Payments | HSP Coordinator (evm-transfer mandates + receipts), mock rail until credentials; x402 + EIP-3009 via USDC.e |
+| Payments | HSP Coordinator (evm-transfer mandates + receipts), direct mandate rail until gateway credentials; x402 + EIP-3009 via USDC.e |
 | Oracles | APRO (push), Supra (pull) |
 | Bot | grammY (TypeScript) + Telegram Mini App + WalletConnect |
 | Backend | Node 24, Hono, viem, Postgres (drizzle, pg-boss), Ponder indexer |
@@ -115,7 +115,7 @@ Why each choice: [`Idea/06-tech-stack.md`](Idea/06-tech-stack.md)
 | Status page | `/status` on the web app (API, relayer, keeper, settlements, HSP) |
 | Demo video | _pending_ |
 
-**Payments mode.** HSP runs in **mock mode** (`HSP_MODE=mock`, a local `MockRail` that runs the same evm-transfer mandate and receipt flow) until HSP credentials are issued. The escrow, credits, refunds and settlement are the real contracts in both modes.
+**Payments mode.** Payments run in **direct mode** (`HSP_MODE=direct`) until HSP merchant credentials are issued: the buyer or agent signs the HSP-style Payment Mandate (EIP-712) and pays real USDT/USDC into the escrow, and the API verifies the transfer on-chain before crediting. The HSP gateway rail (`HSP_MODE=live`, `src/payments/HspGatewayRail.ts`) is built and tested against a fake gateway and switches on with the merchant app key. The escrow, credits, refunds and settlement are the real contracts in both modes.
 
 ## Contract addresses
 

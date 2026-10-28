@@ -98,7 +98,9 @@ function Name({ p }: { p: ApiProvider }) {
   const inner = (
     <>
       <span className="truncate font-medium">{p.displayName}</span>
-      <span className="truncate text-xs text-muted">{p.observed ? (p.channelTitle ?? p.handle) : `@${p.handle}`}</span>
+      <span className="truncate text-xs text-muted">
+        {p.observed ? (p.channelTitle ?? p.handle) : p.channel?.username ? `@${p.handle} · t.me/${p.channel.username}` : `@${p.handle}`}
+      </span>
     </>
   );
   return href ? (

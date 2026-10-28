@@ -23,7 +23,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ handle: string
       endpoints: [
         { name: "web", endpoint: `${config.siteUrl}/p/${encodeURIComponent(p.handle)}` },
         { name: "api", endpoint: `${config.publicApiUrl}/providers/${encodeURIComponent(p.handle)}` },
-        ...(p.channelTitle ? [{ name: "telegram", endpoint: `https://t.me/${config.botUsername}` }] : []),
+        ...(p.channel?.url ? [{ name: "telegram", endpoint: p.channel.url }] : []),
         { name: "agentWallet", endpoint: `eip155:${config.chainId}:${p.address}` },
       ],
       registrations: p.erc8004Id ? [{ agentId: Number(p.erc8004Id), agentRegistry: `eip155:${config.chainId}:${identity()}` }] : [],

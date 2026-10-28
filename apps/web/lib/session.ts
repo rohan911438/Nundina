@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApiSignal } from "@nundina/shared";
+import type { ApiSignal, ApiVerifiedChannel } from "@nundina/shared";
 import { ApiError } from "./api";
 import { config } from "./config";
 
@@ -35,6 +35,8 @@ export async function authed<T>(path: string, init: { method?: string; body?: un
 export interface Me {
   userId: number | null;
   wallet: string | null;
+  /** The Telegram account linked to this wallet, if any. */
+  telegram?: { username: string | null } | null;
 }
 
 export interface PurchaseView {
@@ -131,6 +133,8 @@ export interface MyProvider {
     payoutAddr: string;
     linked: boolean;
     channelId: number | null;
+    channel: ApiVerifiedChannel | null;
+    lookalikeOf: string | null;
     isPractice?: boolean;
     practice?: boolean;
     defaultPriceUsd?: string;
@@ -162,6 +166,13 @@ export const me = {
   setEncryptionKey: (publicKey: string) => authed<{ ok: true }>("/me/encryption-key", { body: { publicKey } }),
   subscriber: () => authed<SubscriberView>("/me/subscriber"),
   provider: () => authed<MyProvider>("/me/provider"),
+};
+
+export const telegramApi = {
+  /** Token for `t.me/<bot>?start=acct_<token>`; the bot finishes the link. */
+  startLink: () => authed<{ token: string; expiresInS: number }>("/me/telegram/link", { body: {} }),
+  /** Finishes a link the bot started with /connect. */
+  redeem: (token: string) => authed<{ telegramId: number; telegramUsername: string | null }>("/me/telegram/redeem", { body: { token } }),
 };
 
 export const purchasesApi = {

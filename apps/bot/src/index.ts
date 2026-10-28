@@ -10,6 +10,7 @@ import { Api } from "./api.js";
 import { ALLOWED_UPDATES, createBot } from "./bot.js";
 import type { Deps, SessionData } from "./context.js";
 import { env } from "./env.js";
+import { RECHECK_MS, recheckChannels } from "./channels.js";
 import { COMMANDS } from "./handlers/commands.js";
 import { startNotifyWorkers } from "./notify/index.js";
 import { anthropicExtractor } from "./parser/index.js";
@@ -47,6 +48,11 @@ async function main() {
   await bot.api.setMyCommands(COMMANDS);
   await startNotifyWorkers(boss, deps, bot.api);
 
+  // channels must stay owned by their provider (and keep the bot as admin) to stay verified
+  const recheck = () => recheckChannels(deps, bot.api, bot.botInfo.id).catch((err) => log("warn", "channel recheck failed", { error: String(err) }));
+  const firstCheck = setTimeout(recheck, 60_000);
+  const recheckTimer = setInterval(recheck, RECHECK_MS);
+
   let stop: () => Promise<void>;
   if (e.BOT_WEBHOOK_URL) {
     const handle = webhookCallback(bot, "http", { secretToken: e.TELEGRAM_WEBHOOK_SECRET });
@@ -67,6 +73,8 @@ async function main() {
   }
 
   const shutdown = async () => {
+    clearTimeout(firstCheck);
+    clearInterval(recheckTimer);
     await stop();
     await boss.stop();
     await sql.end();

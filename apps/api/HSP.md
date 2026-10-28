@@ -19,9 +19,9 @@ GET /purchases/:id/key     → { wrappedKey, ciphertext, iv } (buyer only)
 Both rails check the ERC-20 `Transfer` log on-chain themselves (`src/payments/observe.ts`). Nothing
 is credited because a status field said "paid".
 
-## Mock mode (default)
+## Direct mode (default)
 
-`HSP_MODE=mock`. `MockRail` keeps mandates in `rail_payments`, checks the transfer, and signs
+`HSP_MODE=direct` (`mock` is accepted as the old name). The payer signs the same HSP-style Payment Mandate (EIP-712) and sends the real ERC-20 transfer to the escrow itself; only the hosted gateway hop is skipped. `DirectRail` keeps mandates in `rail_payments`, checks the transfer, and signs
 receipts with `MOCK_ADAPTER_PRIVATE_KEY`. If that key is not set, it uses a key derived from
 `INTERNAL_SECRET`. The outcome classes are the same as HSP's, so the whole product runs without HSP
 credentials.
@@ -56,7 +56,7 @@ The `PaymentRail` interface does not change.
 ## Explorer links
 
 Every purchase stores `hsp_payment_id` (the mandate hash) and `explorer_url`. In live mode the link
-is the HSP explorer. In mock mode it is the chain explorer's tx page.
+is the HSP explorer. In direct mode it is the chain explorer's tx page.
 
 ## USDC.e fast path
 

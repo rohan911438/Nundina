@@ -12,6 +12,7 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "dev": "pnpm -r --parallel --if-present dev",
+    "web:prod": "pnpm --filter @nundina/web build && pnpm --filter @nundina/web start",
     "db:up": "docker compose up -d postgres",
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test",

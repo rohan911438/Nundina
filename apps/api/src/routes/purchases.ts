@@ -14,7 +14,7 @@ import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/erro
 import { publicSignal } from "../lib/serialize.js";
 import { revealMaterial, splitCiphertext, wrapKeyFor } from "../keys/keyService.js";
 import { paymentRail } from "../payments/index.js";
-import { explorerTxUrl } from "../payments/MockRail.js";
+import { explorerTxUrl } from "../payments/DirectRail.js";
 import { syncGatewayPurchase } from "../payments/gatewaySync.js";
 import { enqueue, JOBS } from "../jobs/queue.js";
 import { revealSignal } from "../jobs/reveal.js";
@@ -188,7 +188,7 @@ export const purchaseRoutes = new Hono<AppEnv>()
       buyerAddress: payer.toLowerCase(),
       amount: price.toString(),
       token: token.toLowerCase(),
-      rail: paymentRail().name === "hsp" ? "hsp" : "mock",
+      rail: paymentRail().name,
       hspPaymentId: intent.intentId,
       mandateJson: intent.mandateTypedData ?? intent.checkout ?? null,
       status: "PENDING",

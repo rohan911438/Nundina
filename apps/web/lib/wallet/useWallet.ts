@@ -6,7 +6,6 @@ import { getAddress, type Address } from "viem";
 import { createSiweMessage } from "viem/siwe";
 import { useAccount, useConnect, useDisconnect, useSignMessage, useSwitchChain } from "wagmi";
 import { encKeyMessage, keyFromSignature, loadKey, storeKey, clearKey } from "@/lib/crypto/encKey";
-import { config } from "@/lib/config";
 import { me } from "@/lib/session";
 import { appChain } from "@/lib/wagmi";
 import { openAppKit } from "./appkit";
@@ -73,8 +72,9 @@ export function useWallet() {
       const message = createSiweMessage({
         address: getAddress(address),
         chainId: appChain.id,
-        domain: new URL(config.siteUrl).host,
-        uri: config.siteUrl,
+        // the page's own origin: wallets flag a sign-in whose domain isn't the site asking for it
+        domain: window.location.host,
+        uri: window.location.origin,
         nonce,
         version: "1",
         statement: "Sign in to Nundina",

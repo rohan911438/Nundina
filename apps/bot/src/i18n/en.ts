@@ -31,15 +31,50 @@ ${DISCLAIMER}`,
     viewSignal: "View signal",
     provider: "Provider profile",
     myPurchases: "My purchases",
+    connectWeb: "Link in the app",
+    addToChannel: "➕ Add me to your channel",
+    onboarding: "Provider setup",
   },
 
+  // ── account linking (Telegram ↔ wallet)
+  connectBot: (url: string) =>
+    `<b>Link this Telegram account to your wallet</b>\nOpen the link, sign in with your wallet, and it's done. Then purchases, unlocks and your channel all use the same account.\n\n${esc(url)}\n\nThe link works once and expires in 10 minutes.`,
+  connectLinked: (wallet: string) => `✅ Telegram is linked to wallet <code>${esc(wallet)}</code>.`,
+  acctLinked: (wallet: string | null) =>
+    `✅ <b>Telegram linked</b>${wallet ? ` to wallet <code>${esc(wallet)}</code>` : ""}.\nGo back to the app to continue. Providers: the next step is verifying your channel.`,
+  acctBadLink: (why: string) => `⚠️ ${esc(why)}`,
+
   // ── provider: linking
-  linkNotProvider: "You're not registered as a provider yet. Register in the app first, then run /link_channel again.",
+  linkNotProvider: "You're not registered as a provider yet. Set up your provider profile in the app first.",
+  linkNoWallet: (url: string) =>
+    `This Telegram account isn't linked to a wallet yet, so I can't tell which provider you are.\n\nOpen provider setup, sign in with your wallet and tap <b>Connect Telegram</b>:\n${esc(url)}`,
   linkSteps: (code: string, bot: string) =>
-    `<b>Link your channel</b>\n1. Add @${esc(bot)} to your channel as an admin with the <b>Post messages</b> right.\n2. Post this in the channel:\n<code>/link ${esc(code)}</code>\n\nThe code works once and expires in 15 minutes. I delete the message after linking.`,
+    `<b>Verify your channel</b>\nTap <b>Add me to your channel</b> below, pick your channel and keep the suggested admin rights. I check with Telegram that you own or admin it, and that's it.\n\nAlready added me as admin? Post this in the channel instead:\n<code>/link ${esc(code)}</code>\n(works once, expires in 15 minutes, I delete it straight away)\n\nOnly the channel's owner or its admins can verify it, and one channel belongs to one provider. Bot: @${esc(bot)}`,
+  linkCodeInDm:
+    "That code goes in your <b>channel</b>, not here. Easier: tap <b>Add me to your channel</b> and I verify it in one step.",
   linkNeedsAdmin: "I need to be an admin of this channel with the “Post messages” right before it can be linked.",
-  linkDone: (title: string) => `✅ Linked <b>${esc(title)}</b>. Signals you post here will be sent to you to confirm and lock.`,
   linkBadCode: "That link code is invalid or expired. Run /link_channel in a DM with me for a new one.",
+  linkAlready: (title: string, members?: number | null) =>
+    `Your channel <b>${esc(title)}</b>${members ? ` (${members} subscribers)` : ""} is verified. To switch channels, remove me from this one and add me to the new one.`,
+
+  // ── provider: channel verification
+  channelVerifiedPost: (p: { handle: string; url: string }) =>
+    `✅ <b>This channel is verified on Nundina</b> as @${esc(p.handle)}.\nSignals posted here are locked on HashKey Chain before the move, and subscribers are refunded when they're wrong.\nTrack record: ${esc(p.url)}`,
+  channelVerifiedDm: (p: { title: string; role: string; members?: number | null; url: string }) =>
+    `✅ <b>${esc(p.title)}</b> is verified and linked to your profile.\nTelegram confirms you're its ${p.role === "creator" ? "owner" : "admin"}${p.members ? ` · ${p.members} subscribers` : ""}.\n\nPost signals in the channel as usual: I send each one to you here to confirm and lock.\nYour profile: ${esc(p.url)}`,
+  channelLookalike: (handle: string) =>
+    `⚠️ Your channel's name looks a lot like @${esc(handle)}, who was here first. Your profile shows buyers a lookalike warning. If that's a mistake, rename the channel or contact us.`,
+  channelNoProvider: (url: string) =>
+    `Thanks for adding me. I couldn't verify the channel yet: your Telegram account isn't linked to a Nundina provider profile.\n\nOpen provider setup, sign in with your wallet and tap <b>Connect Telegram</b>, then add me again (or run /link_channel):\n${esc(url)}`,
+  channelNotAdmin: "I couldn't verify that channel: Telegram doesn't list your account as its owner or an admin.",
+  channelTaken: (why: string) => `I couldn't verify that channel: ${esc(why)}. Each channel can belong to one provider only.`,
+  channelRefused: (why: string) => `I couldn't verify this channel: ${esc(why)}.`,
+  channelNeedsPost: (title: string) =>
+    `I'm an admin of ${title ? `<b>${esc(title)}</b>` : "your channel"} but without the “Post messages” right. Turn it on so I can verify the channel and post results.`,
+  channelDropped: (title: string, why: string) =>
+    `⚠️ <b>${esc(title)}</b> is no longer verified on your Nundina profile: ${why}. Add me back as an admin to verify it again.`,
+  whyBotRemoved: "I'm no longer an admin who can post there",
+  whyOwnerLeft: "your Telegram account is no longer its owner or an admin",
 
   // ── provider: drafts
   draft: (p: { channel: string; market: string; side: string; entry: string; tp: string; sl: string; rr: string; hours: number; notes: string[]; parser: string }) =>
