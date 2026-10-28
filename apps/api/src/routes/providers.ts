@@ -13,6 +13,7 @@ import { badRequest, conflict, notFound, unauthorized } from "../lib/errors.js";
 import { bytesToHex, randomBytes } from "../lib/crypto.js";
 import { PROBATION_N, publicProvider, publicSignal, scoreView } from "../lib/serialize.js";
 import { verifyChannel } from "../services/channelVerify.js";
+import { providerOfUser } from "../services/providerOfUser.js";
 import { redeemOnWeb, startLinkFromWeb } from "../services/telegramAccount.js";
 
 const LINK_CODE_TTL_MS = 15 * 60 * 1000;
@@ -47,10 +48,10 @@ export const ChannelFactsBody = z.object({
 });
 const LinkBody = ChannelFactsBody.extend({ code: z.string().min(6) });
 
-/** The provider row of the signed-in user, or 404. */
-export async function myProvider(userId: number | undefined) {
-  if (!userId) throw unauthorized();
-  const p = await db().query.providers.findFirst({ where: eq(providers.userId, userId) });
+/** The provider row of the signed-in user (claiming the indexer's row for their wallet), or 404. */
+export async function myProvider(auth: { userId?: number; wallet?: string | null }) {
+  if (!auth.userId) throw unauthorized();
+  const p = await providerOfUser(auth.userId, auth.wallet);
   if (!p) throw notFound("Provider profile");
   return p;
 }
@@ -101,6 +102,25 @@ export const providerRoutes = new Hono<AppEnv>()
 
     const address = getAddress(a.wallet);
     const payout = getAddress(b.payoutAddr ?? address);
+    // registered on-chain before this profile existed: the indexer's row for the address becomes it
+    const unclaimed = await db().query.providers.findFirst({ where: and(eq(providers.address, address.toLowerCase()), isNull(providers.userId)) });
+    if (unclaimed) {
+      const [p] = await db()
+        .update(providers)
+        .set({
+          userId: a.userId,
+          handle: b.handle,
+          displayName: b.displayName,
+          bio: b.bio,
+          kind: b.kind,
+          isAgent: b.kind !== "human",
+          isPractice: b.practice,
+          defaultPrice: b.practice ? "0" : toUnits(b.defaultPrice).toString(),
+        })
+        .where(eq(providers.id, unclaimed.id))
+        .returning();
+      return c.json({ provider: publicProvider(p!), tx: registrationTxs(b.handle, payout, b.practice, b.telegramHandle) }, 201);
+    }
     const [p] = await db()
       .insert(providers)
       .values({
@@ -126,7 +146,7 @@ export const providerRoutes = new Hono<AppEnv>()
   })
   /** Provider asks for a one-time code, then sends `/link <code>` in their channel; the bot calls the route below. */
   .post("/providers/link-telegram/code", requireUser, async (c) => {
-    const p = await myProvider(getAuth(c).userId);
+    const p = await myProvider(getAuth(c));
     const code = bytesToHex(randomBytes(4)).toUpperCase();
     await db()
       .insert(telegramLinkCodes)
@@ -168,7 +188,7 @@ export const providerRoutes = new Hono<AppEnv>()
     return c.json(await redeemOnWeb(b.data.token, a.userId!));
   })
   .get("/me/provider", requireUser, async (c) => {
-    const p = await myProvider(getAuth(c).userId);
+    const p = await myProvider(getAuth(c));
     const [scores, recent, drafts, [counts], payouts] = await Promise.all([
       db().query.providerScores.findMany({ where: eq(providerScores.providerId, p.id) }),
       db().select().from(signals).where(eq(signals.providerId, p.id)).orderBy(desc(signals.id)).limit(20),
@@ -238,7 +258,7 @@ export const providerRoutes = new Hono<AppEnv>()
     });
   })
   .patch("/me/provider", requireUser, async (c) => {
-    const p = await myProvider(getAuth(c).userId);
+    const p = await myProvider(getAuth(c));
     const body = SettingsBody.safeParse(await c.req.json().catch(() => ({})));
     if (!body.success) throw badRequest("bad_body", body.error.issues.map((i) => i.message).join("; "));
     const b = body.data;

@@ -8,6 +8,7 @@ import { userIdForTelegram } from "../auth/internal.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { publicProvider, publicSignal } from "../lib/serialize.js";
 import { linkedChannels, providerOfTelegram, unverifyChannel, verifyChannel } from "../services/channelVerify.js";
+import { providerOfUser } from "../services/providerOfUser.js";
 import { redeemInBot, startLinkFromBot } from "../services/telegramAccount.js";
 import { ChannelFactsBody } from "./providers.js";
 
@@ -38,7 +39,7 @@ export const telegramRoutes = new Hono<AppEnv>()
     if (!b.success) throw badRequest("bad_body", "telegramId required");
     const userId = await userIdForTelegram(b.data.telegramId, b.data.username);
     const u = await db().query.users.findFirst({ where: eq(users.id, userId) });
-    const p = await db().query.providers.findFirst({ where: eq(providers.userId, userId) });
+    const p = await providerOfUser(userId, u?.wallet);
     return c.json({ userId, wallet: u?.wallet ?? null, hasEncryptionKey: Boolean(u?.pubkey), provider: p ? { handle: p.handle, channelId: p.channelId } : null });
   })
   /** `/start acct_<token>`: the web asked to link this Telegram account to its wallet. */

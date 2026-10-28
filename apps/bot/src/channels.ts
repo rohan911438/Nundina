@@ -14,6 +14,28 @@ export const RECHECK_MS = 6 * 3600_000;
 /** Admin rights the one-tap "add to channel" link asks for. */
 export const CHANNEL_RIGHTS = "post_messages+edit_messages+delete_messages";
 export const addToChannelUrl = (botUsername: string) => `https://t.me/${botUsername}?startchannel&admin=${CHANNEL_RIGHTS}`;
+/** Groups have no "post messages" admin right; being admin is what lets the bot read every message. */
+export const GROUP_RIGHTS = "delete_messages+pin_messages";
+export const addToGroupUrl = (botUsername: string) => `https://t.me/${botUsername}?startgroup&admin=${GROUP_RIGHTS}`;
+
+/** Chat types a provider can verify and post signals in. */
+export const LINKABLE = new Set(["channel", "supergroup", "group"]);
+
+/**
+ * Chats someone made the bot admin of before their Telegram was linked to a provider profile, so
+ * the verification can finish on its own once they link (no need to remove and re-add the bot).
+ * One bot instance, so process memory is enough; entries expire after a day.
+ */
+const PENDING_MS = 24 * 3600_000;
+const pending = new Map<number, { chatId: number; at: number }>();
+export function rememberPending(telegramId: number, chatId: number) {
+  pending.set(telegramId, { chatId, at: Date.now() });
+}
+export function takePending(telegramId: number): number | null {
+  const p = pending.get(telegramId);
+  pending.delete(telegramId);
+  return p && Date.now() - p.at < PENDING_MS ? p.chatId : null;
+}
 
 export async function channelFacts(tg: Telegram, chatId: number): Promise<ChannelFacts> {
   const [chat, admins, members] = await Promise.all([
@@ -32,10 +54,10 @@ export async function channelFacts(tg: Telegram, chatId: number): Promise<Channe
   };
 }
 
-/** Whether the bot can post in the channel (needed for result cards under signals). */
+/** Whether the bot is admin and can post (result cards under signals). Groups have no post right. */
 export async function botCanPost(tg: Telegram, chatId: number, botId: number) {
   const me = await tg.getChatMember(chatId, botId);
-  return me.status === "administrator" && me.can_post_messages === true;
+  return me.status === "administrator" && me.can_post_messages !== false;
 }
 
 export type VerifyOutcome =
@@ -119,4 +141,30 @@ export async function recheckChannels(deps: Deps, tg: Telegram, botId: number) {
   }
   deps.log("info", "channels rechecked", { total: items.length, dropped });
   return { total: items.length, dropped };
+}
+
+/**
+ * Checks the chat's admin list and links it to `telegramId`'s provider profile, then tells everyone
+ * the outcome. If that account isn't linked to a profile yet, the chat is remembered and verified
+ * once it is.
+ */
+export async function verifyChat(deps: Deps, tg: Telegram, chatId: number, telegramId: number) {
+  const facts = await channelFacts(tg, chatId);
+  const o = await verify(() => deps.api.verifyChannel(telegramId, facts), facts);
+  deps.log("info", "channel verify attempt", { chatId, telegramId, ok: o.ok, code: o.ok ? null : o.code });
+  if (o.ok) {
+    await announceVerified(deps, tg, o);
+    return o;
+  }
+  if (o.code === "no_provider" || o.code === "connect_telegram") rememberPending(telegramId, chatId);
+  await explainRefusal(deps, tg, telegramId, o);
+  return o;
+}
+
+/** Finishes a verification that waited for the account link; false when nothing was waiting. */
+export async function finishPending(deps: Deps, tg: Telegram, telegramId: number) {
+  const chatId = takePending(telegramId);
+  if (chatId == null) return false;
+  await verifyChat(deps, tg, chatId, telegramId);
+  return true;
 }

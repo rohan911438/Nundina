@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { closeDb, db } from "../../api/src/db/client.js";
-import { providers, users } from "../../api/src/db/schema.js";
+import { providers, signalDrafts, users } from "../../api/src/db/schema.js";
 import { stopQueue } from "../../api/src/jobs/queue.js";
 import { redeemOnWeb, startLinkFromWeb } from "../../api/src/services/telegramAccount.js";
 import { makeProvider } from "../../api/test/helpers.js";
@@ -134,6 +134,74 @@ describe("channel verification", () => {
     h.channel.members = 4321;
     await recheckChannels(h.deps, h.bot.api, BOT_INFO.id);
     expect(await row(p.providerId)).toMatchObject({ channelId: chat, channelMembers: 4321, channelRole: "administrator" });
+  });
+});
+
+describe("groups, waiting verifications and indexer-made profiles", () => {
+  let h: ReturnType<typeof harness>;
+  beforeEach(() => {
+    h = harness();
+  });
+  const POST = "#BTC/USDT LONG\nEntry: 81500\nTargets: 84000 - 86000\nStop: 80200";
+  const drafts = (chatId: number) => db().query.signalDrafts.findMany({ where: eq(signalDrafts.sourceChatId, chatId) });
+
+  it("a supergroup verifies like a channel (admins have no post right there)", async () => {
+    const p = await provider("Teal Harbor");
+    const chat = nextChat--;
+    h.channel.admins = [{ id: p.tg, status: "creator" }];
+    await h.myChatMember(chat, p.tg, "left", "administrator", null, "supergroup");
+    expect((await row(p.providerId))!.channelId).toBe(chat);
+  });
+
+  it("in a linked group only the provider's posts (or posts as the group) become drafts", async () => {
+    const p = await provider("Ochre Lane");
+    const chat = nextChat--;
+    h.channel.admins = [{ id: p.tg, status: "creator" }];
+    await h.myChatMember(chat, p.tg, "left", "administrator", null, "supergroup");
+
+    await h.groupMessage(chat, 99999, 1, POST); // some member
+    expect(await drafts(chat)).toHaveLength(0);
+    await h.groupMessage(chat, p.tg, 2, POST);
+    await h.groupMessage(chat, 0, 3, POST, true); // anonymous admin
+    expect((await drafts(chat)).map((d) => d.sourceMessageId).sort()).toEqual([2, 3]);
+  });
+
+  it("added to a group as a plain member, the bot asks to be made admin", async () => {
+    const p = await provider("Slate Peak");
+    await h.myChatMember(nextChat--, p.tg, "left", "member", null, "supergroup");
+    expect(h.sent(p.tg).at(-1)!.payload.text).toMatch(/not as an admin/);
+  });
+
+  it("added before the account was linked: verified as soon as the link is redeemed", async () => {
+    const tg = nextTg++;
+    const chat = nextChat--;
+    h.channel.admins = [{ id: tg, status: "creator" }];
+    await h.myChatMember(chat, tg, "left", "administrator");
+    expect(h.sent(tg).at(-1)!.payload.text).toMatch(/remembered this chat/);
+
+    const a = privateKeyToAccount(generatePrivateKey());
+    const p = await makeProvider({ address: a.address, handle: `late_${tg}` });
+    const { token } = await startLinkFromWeb(p.userId);
+    await h.dm(tg, `/start acct_${token}`);
+    expect((await row(p.providerId))!.channelId).toBe(chat);
+    expect(h.sent(tg).some((m) => /is verified and linked/.test(m.payload.text))).toBe(true);
+  });
+
+  it("a profile the indexer created from chain events is claimed by its wallet", async () => {
+    const tg = nextTg++;
+    const a = privateKeyToAccount(generatePrivateKey());
+    const wallet = a.address.toLowerCase();
+    const [orphan] = await db()
+      .insert(providers)
+      .values({ handle: `p_${wallet.slice(2, 10)}`, displayName: "0x…", address: wallet, payoutAddr: wallet })
+      .returning();
+    await db().insert(users).values({ wallet, telegramId: tg });
+    const chat = nextChat--;
+    h.channel.admins = [{ id: tg, status: "creator" }];
+    await h.myChatMember(chat, tg, "left", "administrator");
+    const r = await row(orphan!.id);
+    expect(r!.userId).not.toBeNull();
+    expect(r!.channelId).toBe(chat);
   });
 });
 

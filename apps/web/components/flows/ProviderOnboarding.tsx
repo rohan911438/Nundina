@@ -37,6 +37,8 @@ const recall = (a: string) => {
 
 /** Admin rights the bot asks for when added to a channel (Telegram pre-fills them). */
 const CHANNEL_RIGHTS = "post_messages+edit_messages+delete_messages";
+/** Groups have no "post messages" right; admin is enough for the bot to read and reply. */
+const GROUP_RIGHTS = "delete_messages+pin_messages";
 
 /**
  * Checklist with live status: wallet → ERC-8004 identity → ProviderRegistry → Telegram account →
@@ -114,7 +116,8 @@ function Checklist() {
         payout = getAddress(s2?.args?.payout ?? address);
         tgHash = (s2?.args?.tgHandleHash as Hex) ?? null;
         const s1 = r.tx.steps[0];
-        if (s1?.data) {
+        // already on-chain (registered before this profile existed): no second identity
+        if (s1?.data && !onChain) {
           setBusy("identity");
           const h = await sendTransaction(wagmi, { to: getAddress(s1.to), data: s1.data as Hex });
           const rc = await waitForTransactionReceipt(wagmi, { hash: h });
@@ -124,6 +127,10 @@ function Checklist() {
         }
         agentUri = r.tx.agentUri ?? null;
         await qc.invalidateQueries({ queryKey: ["me-provider"] });
+      }
+      if (onChain) {
+        await reg.refetch();
+        return;
       }
       let agentId = recall(address);
       if (!agentId) {
@@ -248,19 +255,19 @@ function Checklist() {
         </section>
       ) : null}
 
-      {hasProfile && onChain && !tgLinked ? (
+      {hasProfile && !tgLinked ? (
         <section className="space-y-3 rounded-2xl border border-border p-5" data-testid="step-telegram">
           <h2 className="font-medium">Connect your Telegram account</h2>
           <TelegramConnect hint="One tap in Telegram links it to this wallet. That's how we know which channels are really yours, and where to send your signal drafts." />
         </section>
       ) : null}
 
-      {hasProfile && onChain && tgLinked && !linked ? (
+      {hasProfile && tgLinked && !linked ? (
         <section className="space-y-4 rounded-2xl border border-border p-5" data-testid="step-channel">
           <div>
-            <h2 className="font-medium">Verify your channel</h2>
+            <h2 className="font-medium">Verify your channel or group</h2>
             <p className="mt-1 text-sm text-muted">
-              Add the bot to your channel as an admin. Telegram tells the bot who owns and runs the channel; it&apos;s linked only if your account is one of them.
+              Add the bot as an admin where you post signals. Telegram tells the bot who owns and runs it; it&apos;s linked only if your account is one of them.
             </p>
           </div>
           {config.botUsername ? (
@@ -275,12 +282,34 @@ function Checklist() {
                 <Plus aria-hidden /> Add @{config.botUsername} to your channel
               </a>
             </Button>
+          ) : null}
+          {config.botUsername ? (
+            <Button asChild variant="outline">
+              <a
+                href={`https://t.me/${config.botUsername}?startgroup&admin=${GROUP_RIGHTS}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                onClick={() => setWatchChannel(true)}
+                data-testid="add-to-group"
+              >
+                <Plus aria-hidden /> It&apos;s a group
+              </a>
+            </Button>
           ) : (
             <p className="text-sm text-muted">The Telegram bot isn&apos;t connected on this deployment yet.</p>
           )}
           {watchChannel ? (
             <p className="flex items-center gap-2 text-xs text-muted" aria-live="polite">
               <Loader2 aria-hidden className="size-3 animate-spin" /> Pick your channel and keep the suggested rights. This page updates when it&apos;s verified.
+            </p>
+          ) : null}
+          {config.botUsername ? (
+            <p className="text-sm text-muted">
+              Added the bot before connecting Telegram?{" "}
+              <a href={`https://t.me/${config.botUsername}?start=link_channel`} target="_blank" rel="noreferrer noopener" className="text-accent underline-offset-4 hover:underline">
+                Open the bot
+              </a>{" "}
+              and it finishes the check, no need to add it again.
             </p>
           ) : null}
           <ul className="grid gap-2 text-xs text-muted sm:grid-cols-3">
