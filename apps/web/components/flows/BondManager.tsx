@@ -33,6 +33,13 @@ export function BondManager({ provider, defaultPriceUsd, onChange }: { provider:
     query: { enabled: Boolean(registry), refetchInterval: 15_000 },
   });
   const p = info.data;
+  const wallet = useReadContract({
+    address: p?.bondToken,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [provider],
+    query: { enabled: Boolean(p), refetchInterval: 15_000 },
+  });
   const free = p ? p.bondTotal - p.bondLocked : undefined;
   const priceUnits = parseUnits(defaultPriceUsd || "0", 6);
   const capacity = free != null && priceUnits > 0n ? free / priceUnits : null;
@@ -45,7 +52,7 @@ export function BondManager({ provider, defaultPriceUsd, onChange }: { provider:
     try {
       const hash = await fn();
       await waitForTransactionReceipt(wagmi, { hash });
-      await info.refetch();
+      await Promise.all([info.refetch(), wallet.refetch()]);
       onChange?.();
     } catch (e) {
       setError(walletErrorMessage(e));
@@ -58,6 +65,10 @@ export function BondManager({ provider, defaultPriceUsd, onChange }: { provider:
     tx("deposit", async () => {
       if (!registry || !p) throw new Error("Register as a provider first");
       const value = parseUnits(amount, 6);
+      // the wallet only reports a failed simulation as "resource not found": say what's missing instead
+      const balance = await readContract(wagmi, { address: p.bondToken, abi: erc20Abi, functionName: "balanceOf", args: [provider] });
+      if (balance < value)
+        throw new Error(`Your wallet has ${fmt(balance)} of the bond token (test USDT); this deposit needs ${fmt(value)}. HSK only pays gas.`);
       const allowance = await readContract(wagmi, { address: p.bondToken, abi: erc20Abi, functionName: "allowance", args: [provider, registry] });
       if (allowance < value) {
         // exact amount, never unlimited: wallets flag unlimited approvals as drainer behaviour
@@ -81,7 +92,7 @@ export function BondManager({ provider, defaultPriceUsd, onChange }: { provider:
       </dl>
       <div className="mt-5 flex flex-wrap items-end gap-2">
         <label className="block min-w-32 flex-1">
-          <span className="text-xs text-muted">Amount (USD)</span>
+          <span className="text-xs text-muted">Amount (USD) · in wallet {fmt(wallet.data)}</span>
           <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="input num mt-1" />
         </label>
         <Button variant="accent" onClick={() => void deposit()} disabled={Boolean(busy) || !/^\d+(\.\d{1,6})?$/.test(amount)} data-testid="deposit">
