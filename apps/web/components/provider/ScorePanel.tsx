@@ -15,7 +15,7 @@ export function ScorePanel({ s }: { s: ApiScore }) {
         <Stat label="Win rate (lower bound)" value={pct(s.wilsonLb)} hint={`${pct(s.winRate, { dp: 0 })} raw · ${s.wins}W ${s.losses}L`} />
         <Stat label="Expectancy" value={r(s.expectancyR)} tone={tone(s.expectancyR)} hint="per signal" />
         <Stat label="Alpha vs BTC" value={pp(s.alphaBtc)} tone={tone(s.alphaBtc)} hint="mean, per signal" />
-        <Stat label="Max drawdown" value={r(-Math.abs(s.maxDd))} tone="loss" hint="peak to trough" />
+        <Stat label="Max drawdown" value={r(-Math.abs(s.maxDd))} tone={s.maxDd ? "loss" : undefined} hint="peak to trough" />
         <Stat label="Settled signals" value={s.n} hint={s.voids ? `${s.voids} void` : "VOID excluded"} />
         <Stat label="Follower PnL" value={pp(s.followerPnl)} tone={tone(s.followerPnl)} hint="after fees" />
       </dl>
