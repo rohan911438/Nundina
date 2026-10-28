@@ -177,7 +177,7 @@ export const telegramApi = {
 
 export const purchasesApi = {
   create: (signalId: string, token: "USDT" | "USDC_E") =>
-    authed<{ purchaseId: string; status: string; intent: Intent }>("/purchases", { body: { signalId, token } }),
+    authed<{ purchaseId: string; status: string; intent: Intent | null }>("/purchases", { body: { signalId, token } }),
   submit: (id: string, mandateSig: string, txHash: string) =>
     authed<PurchaseView>(`/purchases/${id}/submit`, { body: { mandateSig, txHash }, headers: { "idempotency-key": `${id}:${txHash}` } }),
   authorize: (id: string, authorization: Record<string, string>, signature: string) =>

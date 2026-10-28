@@ -133,6 +133,11 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
     try {
       setStage("signing");
       const { purchaseId: id, intent } = await purchasesApi.create(signal.id, token);
+      if (!intent) {
+        // free signal: the key is already delivered, nothing to pay
+        await unlock(await purchasesApi.get(id));
+        return;
+      }
       setPurchaseId(id);
       if (intent.checkout) {
         // HashKey Merchant gateway: the buyer authorises the transfer to escrow on HSP's checkout page
@@ -171,6 +176,31 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
   }
 
   if (unlocked) return <UnlockedCard s={unlocked} purchase={poll.data ?? existing ?? null} />;
+
+  if (price6 === 0n)
+    return (
+      <div className="space-y-4" data-testid="buy-flow">
+        <div className="rounded-2xl border border-locked/30 bg-locked/[0.06] p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm text-muted">@{signal.provider?.handle}</p>
+            <p className="num text-3xl font-medium">Free</p>
+          </div>
+          <p className="mt-3 text-sm text-muted">
+            {signal.market} · expires {ago(signal.validUntil)}. The levels were locked on HashKey Chain before the move; unlock them now and the result is settled on-chain.
+          </p>
+        </div>
+        {error ? (
+          <p role="alert" className="text-sm text-loss" data-testid="buy-error">
+            {error}
+          </p>
+        ) : null}
+        <Button size="lg" variant="accent" className="w-full" onClick={() => void buy()} disabled={stage !== "idle" && stage !== "error"} data-testid="pay">
+          {stage !== "idle" && stage !== "error" ? <Loader2 aria-hidden className="animate-spin" /> : <Lock aria-hidden />}
+          Unlock free signal
+        </Button>
+        <p className="text-center text-xs text-muted">No payment · the key is decrypted on this device only</p>
+      </div>
+    );
 
   const paying = stage !== "idle" && stage !== "error";
   const p = poll.data;

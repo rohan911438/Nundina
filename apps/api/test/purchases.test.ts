@@ -207,6 +207,22 @@ describe.skipIf(!canRunChain)("purchases (DirectRail on anvil)", () => {
     expect(right.status).toBe(201);
   });
 
+  it("a free signal unlocks in one call: no payment, no bond, key delivered", async () => {
+    const own = await db().query.users.findFirst({ where: eq(users.wallet, provider.address.toLowerCase()) });
+    const { signalId: freeId } = await chain.commitViaApi(provider, own!.id, 0n);
+    const b = await newBuyer("0");
+    const r = await postJson("/purchases", { signalId: freeId.toString() }, b.headers);
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ status: "KEY_SENT", intent: null });
+
+    const k = await getJson(`/purchases/${r.body.purchaseId}/key`, b.headers);
+    const body = decryptSignalBody<{ entry: string }>(unwrapKey(b.enc.privateKey, k.body.wrappedKey), k.body.ciphertext, k.body.iv);
+    expect(body.entry).toBe("8150000000000");
+    // asking again returns the same claim instead of an error
+    const again = await postJson("/purchases", { signalId: freeId.toString() }, b.headers);
+    expect(again.body.purchaseId).toBe(r.body.purchaseId);
+  });
+
   it("never logs plaintext, keys or salts", async () => {
     log.info({ plaintext: "SECRET-PLAINTEXT", nested: { salt: "0xSECRETSALT", aesKey: "SECRETKEY" } }, "redaction check");
     const all = testLogLines.join("\n");

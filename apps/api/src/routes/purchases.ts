@@ -138,7 +138,6 @@ export const purchaseRoutes = new Hono<AppEnv>()
     if (s.validUntil <= new Date()) throw conflict("signal_expired", "Signal has expired");
     if (s.source !== "chain") throw conflict("not_on_chain", "Demo signals cannot be bought");
     const price = BigInt(s.price);
-    if (price === 0n) throw badRequest("free_signal", "Practice signals are free; no purchase needed");
 
     const provider = await db().query.providers.findFirst({ where: eq(providers.id, s.providerId) });
     if (!provider) throw notFound("Provider");
@@ -149,13 +148,36 @@ export const purchaseRoutes = new Hono<AppEnv>()
     const existing = await db().query.purchases.findFirst({
       where: and(eq(purchases.signalId, signalId), eq(purchases.buyerAddress, payer.toLowerCase())),
     });
-    if (existing && !RETRYABLE_STATUSES.includes(existing.status) && existing.status !== "PENDING") {
+    if (price > 0n && existing && !RETRYABLE_STATUSES.includes(existing.status) && existing.status !== "PENDING") {
       throw conflict("already_bought", "You already bought this signal");
     }
 
     const buyer = await db().query.users.findFirst({ where: eq(users.id, a.userId!) });
     const agent = a.agentId ? await db().query.agents.findFirst({ where: eq(agents.id, a.agentId) }) : undefined;
     if (!(agent?.encPubkey ?? buyer?.pubkey)) throw conflict("no_encryption_key", "Register an encryption key first (POST /me/encryption-key)");
+
+    // Free (practice) signal: nothing to pay or escrow, so no bond is locked. The key is wrapped to
+    // the buyer straight away; the claim still counts as a subscriber and gets the result DM.
+    if (price === 0n) {
+      if (existing && PAID_STATUSES.includes(existing.status)) return c.json({ purchaseId: existing.id, status: existing.status, intent: null });
+      const free = {
+        signalId,
+        buyerUserId: a.userId,
+        agentId: a.agentId ?? null,
+        buyerAddress: payer.toLowerCase(),
+        amount: "0",
+        token: paymentToken(env().CHAIN_ID).toLowerCase(),
+        rail: "free",
+        status: "CREDITED",
+        outcomeClass: "ACCEPT",
+        updatedAt: new Date(),
+      };
+      const [p] = existing
+        ? await db().update(purchases).set(free).where(eq(purchases.id, existing.id)).returning()
+        : await db().insert(purchases).values(free).returning();
+      await afterCredit(p!.id, signalId);
+      return c.json({ purchaseId: p!.id, status: "KEY_SENT", intent: null }, 201);
+    }
 
     // Capacity: every credited subscriber locks `price` of the provider's bond.
     const paid = await db()

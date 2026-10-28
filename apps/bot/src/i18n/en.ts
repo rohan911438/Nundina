@@ -26,6 +26,7 @@ ${DISCLAIMER}`,
     edit: "Edit",
     ignore: "Ignore",
     buy: "Buy",
+    getFree: "Get it free",
     proof: "Proof",
     open: "Open",
     viewSignal: "View signal",
@@ -111,8 +112,10 @@ ${DISCLAIMER}`,
   },
 
   // ── subscriber
-  buyIntro: (p: { market: string; priceUsd: string; provider: string; hours: number }) =>
-    `🔒 <b>${esc(p.market)}</b> by ${esc(p.provider)}\nPrice ${esc(p.priceUsd)} USDT · expires in ${p.hours}h\nIf it's wrong you're refunded plus part of the provider's bond.`,
+  buyIntro: (p: { market: string; priceUsd: string; provider: string; hours: number; free?: boolean }) =>
+    p.free
+      ? `🔒 <b>${esc(p.market)}</b> by ${esc(p.provider)}\nFree · expires in ${p.hours}h\nLocked on HashKey Chain before the move; the result is settled on-chain.`
+      : `🔒 <b>${esc(p.market)}</b> by ${esc(p.provider)}\nPrice ${esc(p.priceUsd)} USDT · expires in ${p.hours}h\nIf it's wrong you're refunded plus part of the provider's bond.`,
   noSignals: "No live signals right now.",
   signalsHeader: "<b>Live signals</b>",
   signalLine: (p: { id: string; market: string; provider: string; priceUsd: string; hours: number }) =>
