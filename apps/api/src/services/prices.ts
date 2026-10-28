@@ -1,5 +1,5 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
-import { MARKETS, type MarketLabel } from "@nundina/shared";
+import { MARKETS, type CexListing, type MarketInfo, type MarketLabel } from "@nundina/shared";
 import { db } from "../db/client.js";
 import { priceCandles } from "../db/schema.js";
 import { badRequest } from "../lib/errors.js";
@@ -33,18 +33,27 @@ export function setPriceFetcher(f: FetchFn) {
   fetcher = f;
 }
 
-/** Raw klines from the market's CEX (Binance for BTC, Gate for HSK). */
+/** Raw klines from the market's CEX (Binance for BTC, Gate for HSK), then its backup venue if any. */
 async function fetchKlines(market: MarketLabel, interval: Interval, from: number, to: number): Promise<Candle[]> {
-  const m = MARKETS[market];
-  if (m.cex.venue === "binance") {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${m.cex.symbol}&interval=${interval}&startTime=${from}&endTime=${to}&limit=${MAX_CANDLES}`;
+  const m: MarketInfo = MARKETS[market];
+  try {
+    return await klinesFrom(m.cex, interval, from, to);
+  } catch (err) {
+    if (!m.backupCex) throw err;
+    return klinesFrom(m.backupCex, interval, from, to); // e.g. Binance blocked in this region
+  }
+}
+
+async function klinesFrom(c: CexListing, interval: Interval, from: number, to: number): Promise<Candle[]> {
+  if (c.venue === "binance") {
+    const url = `https://api.binance.com/api/v3/klines?symbol=${c.symbol}&interval=${interval}&startTime=${from}&endTime=${to}&limit=${MAX_CANDLES}`;
     const res = await fetcher(url);
     if (!res.ok) throw new Error(`binance ${res.status}`);
     const rows = (await res.json()) as [number, string, string, string, string, string][];
     return rows.map(([t, o, h, l, c, v]) => ({ t, o, h, l, c, v }));
   }
   // Gate.io: seconds; row = [t, quoteVol, close, high, low, open, baseVol, closed]
-  const url = `https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=${m.cex.symbol}&interval=${interval}&from=${Math.floor(from / 1000)}&to=${Math.floor(to / 1000)}`;
+  const url = `https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=${c.symbol}&interval=${interval}&from=${Math.floor(from / 1000)}&to=${Math.floor(to / 1000)}`;
   const res = await fetcher(url);
   if (!res.ok) throw new Error(`gate ${res.status}`);
   const rows = (await res.json()) as string[][];
