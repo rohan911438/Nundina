@@ -34,10 +34,25 @@ export interface ApiProvider {
   isPractice: boolean;
   observed: boolean;
   channelTitle: string | null;
+  /** The Telegram channel this provider proved they own or admin; null until verified. */
+  channel: ApiVerifiedChannel | null;
+  /** Handle of an established provider whose name this profile's channel closely resembles. */
+  lookalikeOf: string | null;
   defaultPriceUsd: string;
   bondUsd: string;
   createdAt: string;
   score: ApiScore;
+}
+
+export interface ApiVerifiedChannel {
+  title: string | null;
+  /** Public @username without the @, or null for a private channel. */
+  username: string | null;
+  url: string | null;
+  members: number | null;
+  /** The provider's own role there, as Telegram reported it: creator (owner) or administrator. */
+  role: "creator" | "administrator" | string | null;
+  verifiedAt: string;
 }
 
 export interface ApiProviderDetail extends ApiProvider {

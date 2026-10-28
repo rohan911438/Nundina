@@ -7,9 +7,10 @@ import type { Ctx, Deps, SessionData } from "./context.js";
 import { callbackHandlers } from "./handlers/callbacks.js";
 import { channelPostHandlers } from "./handlers/channelPost.js";
 import { commandHandlers } from "./handlers/commands.js";
+import { membershipHandlers } from "./handlers/membership.js";
 import { en } from "./i18n/en.js";
 
-export const ALLOWED_UPDATES = ["message", "channel_post", "edited_channel_post", "callback_query"] as const;
+export const ALLOWED_UPDATES = ["message", "channel_post", "edited_channel_post", "callback_query", "my_chat_member"] as const;
 
 export function createBot(
   token: string,
@@ -39,6 +40,7 @@ export function createBot(
     }),
   );
 
+  bot.use(membershipHandlers(deps));
   bot.use(channelPostHandlers(deps));
   bot.use(commandHandlers(deps));
   bot.use(callbackHandlers(deps));

@@ -48,7 +48,7 @@ describe("Telegram ↔ wallet linking on SIWE", () => {
     const initData = signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: tgId }) }, TOKEN);
     expect((await login({ "x-telegram-init-data": initData })).r.status).toBe(200);
     const second = await login({ "x-telegram-init-data": initData });
-    expect(second.r.status).toBe(400);
+    expect(second.r.status).toBe(409);
     expect(second.r.body.error.code).toBe("telegram_linked");
   });
 });

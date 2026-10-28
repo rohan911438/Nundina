@@ -11,6 +11,7 @@ import { publicClient } from "../chain/clients.js";
 import { badRequest, unauthorized } from "../lib/errors.js";
 import type { AppEnv } from "./context.js";
 import { verifyInitData } from "./telegram.js";
+import { bindTelegram } from "../services/telegramAccount.js";
 import type { Context } from "hono";
 
 export const SESSION_COOKIE = "nd_session";
@@ -56,13 +57,7 @@ async function linkTelegram(c: Context, userId: number) {
   if (!initData || !token) return;
   const d = verifyInitData(initData, token);
   if (!d?.user) return;
-  const tgUser = await db().query.users.findFirst({ where: eq(users.telegramId, d.user.id) });
-  if (tgUser?.id === userId) return;
-  if (tgUser?.wallet) throw badRequest("telegram_linked", "This Telegram account is linked to another wallet");
-  await db().transaction(async (tx) => {
-    if (tgUser) await tx.update(users).set({ telegramId: null }).where(eq(users.id, tgUser.id));
-    await tx.update(users).set({ telegramId: d.user!.id, telegramUsername: d.user!.username }).where(eq(users.id, userId));
-  });
+  await bindTelegram(userId, d.user.id, d.user.username);
 }
 
 /** SIWE `domain` (host[:port]) whose hostname is one of WEB_ORIGIN's; the port doesn't matter. */
@@ -137,5 +132,8 @@ export const siweRoutes = new Hono<AppEnv>()
   })
   .get("/me", async (c) => {
     const s = await readSession(c);
-    return c.json(s ? { userId: s.userId, wallet: s.wallet } : { userId: null, wallet: null });
+    if (!s) return c.json({ userId: null, wallet: null, telegram: null });
+    const u = await db().query.users.findFirst({ where: eq(users.id, s.userId) });
+    const telegram = u?.telegramId ? { username: u.telegramUsername ?? null } : null;
+    return c.json({ userId: s.userId, wallet: s.wallet, telegram });
   });

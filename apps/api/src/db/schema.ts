@@ -57,8 +57,17 @@ export const providers = pgTable(
     address: text("address").notNull().unique(),
     erc8004Id: units("erc8004_id"),
     payoutAddr: text("payout_addr").notNull(),
-    channelId: bigint("channel_id", { mode: "number" }),
+    channelId: bigint("channel_id", { mode: "number" }).unique(),
     channelTitle: text("channel_title"),
+    /** Public @username of the channel (null for private ones), shown so buyers can check it is the real one. */
+    channelUsername: text("channel_username"),
+    channelMembers: integer("channel_members"),
+    /** The provider's own Telegram role in the channel when last verified: creator | administrator. */
+    channelRole: text("channel_role"),
+    /** Last time the bot confirmed it is still admin there and the provider still owns or admins it. */
+    channelVerifiedAt: ts("channel_verified_at"),
+    /** Handle of an established provider whose channel or name this one closely resembles (impersonation warning). */
+    lookalikeOf: text("lookalike_of"),
     kycUntil: ts("kyc_until"),
     isAgent: boolean("is_agent").notNull().default(false),
     /** human | agent | aggregator */
@@ -378,6 +387,19 @@ export const telegramLinkCodes = pgTable("telegram_link_codes", {
   providerId: integer("provider_id")
     .notNull()
     .references(() => providers.id),
+  expiresAt: ts("expires_at").notNull(),
+  usedAt: ts("used_at"),
+});
+
+/**
+ * One-time tokens that tie a Telegram account to a wallet account: made on the web (userId set,
+ * redeemed by `/start acct_<token>` in the bot) or in the bot (telegramId set, redeemed on the web).
+ */
+export const telegramAccountLinks = pgTable("telegram_account_links", {
+  token: text("token").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  telegramId: bigint("telegram_id", { mode: "number" }),
+  telegramUsername: text("telegram_username"),
   expiresAt: ts("expires_at").notNull(),
   usedAt: ts("used_at"),
 });

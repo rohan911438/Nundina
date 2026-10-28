@@ -55,8 +55,29 @@ export const healthRoutes = new Hono<AppEnv>()
     return c.json(h, h.ok ? 200 : 503);
   })
   /** Status page data: every monitored check (public; addresses and counts only). */
-  .get("/status", async (c) => {
-    const { checks } = await import("../services/monitor.js");
-    const cs = await checks();
-    return c.json({ ok: cs.every((x) => x.ok), checkedAt: new Date().toISOString(), checks: cs });
+  .get("/status", async (c) => c.json(await statusSnapshot()));
+
+/** The checks hit a public RPC that sometimes takes seconds; the status page gets the last run
+ *  (at most STATUS_FRESH_MS old) and a stale one refreshes in the background. */
+const STATUS_FRESH_MS = 15_000;
+let lastStatus: { at: number; body: Promise<StatusBody> } | null = null;
+type StatusBody = { ok: boolean; checkedAt: string; checks: Awaited<ReturnType<typeof import("../services/monitor.js").checks>> };
+
+async function runStatus(): Promise<StatusBody> {
+  const { checks } = await import("../services/monitor.js");
+  const cs = await checks();
+  return { ok: cs.every((x) => x.ok), checkedAt: new Date().toISOString(), checks: cs };
+}
+
+export function statusSnapshot(): Promise<StatusBody> {
+  const now = Date.now();
+  if (lastStatus && now - lastStatus.at < STATUS_FRESH_MS) return lastStatus.body;
+  const prev = lastStatus;
+  const next = { at: now, body: runStatus() };
+  next.body.catch(() => {
+    if (lastStatus === next) lastStatus = prev;
   });
+  lastStatus = next;
+  // serve the previous result while the new one runs
+  return prev ? prev.body.catch(() => next.body) : next.body;
+}

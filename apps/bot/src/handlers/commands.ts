@@ -1,5 +1,7 @@
 import { Composer, InlineKeyboard } from "grammy";
+import { ApiError } from "../api.js";
 import { buyCard, deepLink, hoursLeft, miniApp, usd, webUrl } from "../cards.js";
+import { ONBOARDING_PATH, addToChannelUrl } from "../channels.js";
 import type { Ctx, Deps } from "../context.js";
 import { en } from "../i18n/en.js";
 
@@ -21,10 +23,39 @@ export function commandHandlers(deps: Deps) {
   const c = new Composer<Ctx>();
   const pm = c.chatType("private");
 
+  // resolved on every message: linking a wallet moves this Telegram account onto another user row
   pm.use(async (ctx, next) => {
-    if (!ctx.session.userId) ctx.session.userId = (await deps.api.user(ctx.from.id, ctx.from.username)).userId;
+    ctx.session.userId = (await deps.api.user(ctx.from.id, ctx.from.username)).userId;
     await next();
   });
+
+  const onboarding = () => webUrl(deps.links, ONBOARDING_PATH);
+  const addKb = (ctx: Ctx) => new InlineKeyboard().url(en.buttons.addToChannel, addToChannelUrl(ctx.me.username));
+
+  async function linkChannel(ctx: Ctx & { from: { id: number; username?: string } }) {
+    const u = await deps.api.user(ctx.from.id, ctx.from.username);
+    const setup = new InlineKeyboard().url(en.buttons.onboarding, onboarding());
+    if (!u.wallet) return ctx.reply(en.linkNoWallet(onboarding()), { ...html, reply_markup: setup });
+    if (!u.provider) return ctx.reply(en.linkNotProvider, { reply_markup: setup });
+    if (u.provider.channelId) {
+      const p = await deps.api.providerForChannel(u.provider.channelId);
+      return ctx.reply(en.linkAlready(p?.channelTitle ?? "your channel"), html);
+    }
+    const { code } = await deps.api.linkCode(u.userId);
+    return ctx.reply(en.linkSteps(code, ctx.me.username), { ...html, reply_markup: addKb(ctx) });
+  }
+
+  /** `/start acct_<token>`: the app sent this person here to link their Telegram account. */
+  async function redeemAccount(ctx: Ctx & { from: { id: number; username?: string } }, token: string) {
+    try {
+      const r = await deps.api.redeemAccountLink(token, ctx.from.id, ctx.from.username);
+      ctx.session.userId = r.userId;
+      return ctx.reply(en.acctLinked(r.wallet), html);
+    } catch (e) {
+      if (e instanceof ApiError && e.status < 500) return ctx.reply(en.acctBadLink(e.message), html);
+      throw e;
+    }
+  }
 
   async function sendBuy(ctx: Ctx, id: string) {
     const s = /^\d+$/.test(id) ? await deps.api.signal(id) : null;
@@ -36,6 +67,8 @@ export function commandHandlers(deps: Deps) {
   pm.command("start", async (ctx) => {
     const payload = ctx.match.trim();
     if (payload.startsWith("buy_")) return sendBuy(ctx, payload.slice(4));
+    if (payload.startsWith("acct_")) return redeemAccount(ctx, payload.slice(5));
+    if (payload === "link_channel") return linkChannel(ctx);
     if (payload.startsWith("p_")) {
       const handle = payload.slice(2);
       return ctx.reply(`@${handle}`, { reply_markup: new InlineKeyboard().url(en.buttons.provider, webUrl(deps.links, `/p/${handle}`)) });
@@ -48,9 +81,17 @@ export function commandHandlers(deps: Deps) {
 
   pm.command("help", (ctx) => ctx.reply(en.help, html));
 
-  pm.command("connect", (ctx) =>
-    ctx.reply(en.connect, { reply_markup: new InlineKeyboard().webApp(en.buttons.connect, miniApp(deps.links, "/connect")) }),
-  );
+  pm.command("connect", async (ctx) => {
+    const u = await deps.api.user(ctx.from.id, ctx.from.username);
+    const mini = new InlineKeyboard().webApp(en.buttons.connect, miniApp(deps.links, "/connect"));
+    if (u.wallet) return ctx.reply(en.connectLinked(u.wallet), { ...html, reply_markup: mini });
+    const { token } = await deps.api.startAccountLink(ctx.from.id, ctx.from.username);
+    const url = webUrl(deps.links, `/connect?t=${token}`);
+    return ctx.reply(en.connectBot(url), { ...html, reply_markup: new InlineKeyboard().url(en.buttons.connectWeb, url).row().webApp(en.buttons.connect, miniApp(deps.links, "/connect")) });
+  });
+
+  // `/link CODE` belongs in the channel; people often send it here
+  pm.command("link", (ctx) => ctx.reply(en.linkCodeInDm, { ...html, reply_markup: addKb(ctx) }));
 
   pm.command("buy", (ctx) => sendBuy(ctx, ctx.match.trim().replace(/^#/, "")));
 
@@ -76,12 +117,7 @@ export function commandHandlers(deps: Deps) {
     });
   });
 
-  pm.command("link_channel", async (ctx) => {
-    const u = await deps.api.user(ctx.from.id, ctx.from.username);
-    if (!u.provider) return ctx.reply(en.linkNotProvider);
-    const { code } = await deps.api.linkCode(u.userId);
-    return ctx.reply(en.linkSteps(code, ctx.me.username), html);
-  });
+  pm.command("link_channel", (ctx) => linkChannel(ctx));
 
   pm.command("bond", async (ctx) => {
     const me = await deps.api.myProvider(ctx.session.userId!);

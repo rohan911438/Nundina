@@ -85,6 +85,18 @@ export function publicProvider(p: ProviderRow, score?: ScoreRow | null) {
     isPractice: p.isPractice,
     observed: false,
     channelTitle: p.channelTitle,
+    channel:
+      p.channelId != null && p.channelVerifiedAt
+        ? {
+            title: p.channelTitle,
+            username: p.channelUsername,
+            url: p.channelUsername ? `https://t.me/${p.channelUsername}` : null,
+            members: p.channelMembers,
+            role: p.channelRole,
+            verifiedAt: p.channelVerifiedAt.toISOString(),
+          }
+        : null,
+    lookalikeOf: p.lookalikeOf,
     defaultPriceUsd: fromUnits(BigInt(p.defaultPrice)),
     bondUsd: fromUnits(BigInt(p.bondTotal)),
     createdAt: p.createdAt.toISOString(),

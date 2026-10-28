@@ -42,6 +42,22 @@ export interface TelegramUser {
   provider: { handle: string; channelId: number | null } | null;
 }
 
+/** What the bot reads from Telegram about a channel; the API decides ownership from `admins`. */
+export interface ChannelFacts {
+  channelId: number;
+  title: string;
+  username?: string;
+  members?: number;
+  admins: { id: number; status: "creator" | "administrator" }[];
+}
+
+export interface ChannelVerified {
+  provider: { handle: string; displayName: string };
+  role: "creator" | "administrator";
+  lookalikeOf: string | null;
+  telegramId: number;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -94,8 +110,18 @@ export class Api {
     this.request<{ id: number; status: string }>("POST", "/drafts", { body });
   ignoreDraft = (id: number) => this.request<{ draftId: number }>("POST", `/internal/telegram/drafts/${id}/ignore`);
   linkCode = (userId: number) => this.request<{ code: string; expiresInS: number }>("POST", "/providers/link-telegram/code", { asUser: userId });
-  linkChannel = (code: string, channelId: number, channelTitle: string) =>
-    this.request<{ provider: { handle: string } }>("POST", "/providers/link-telegram", { body: { code, channelId, channelTitle } });
+  linkChannel = (code: string, facts: ChannelFacts) => this.request<ChannelVerified>("POST", "/providers/link-telegram", { body: { code, ...facts } });
+  /** The bot was made admin by `telegramId`; links the channel if that account owns or admins it. */
+  verifyChannel = (telegramId: number, facts: ChannelFacts) =>
+    this.request<ChannelVerified>("POST", "/internal/telegram/channels/verify", { body: { telegramId, ...facts } });
+  unverifyChannel = (chatId: number) =>
+    this.maybe<{ handle: string; title: string | null; telegramId: number | null }>("POST", `/internal/telegram/channels/${chatId}/unverify`);
+  linkedChannels = () =>
+    this.request<{ items: { channelId: number; providerId: number; handle: string; telegramId: number | null }[] }>("GET", "/internal/telegram/channels");
+  redeemAccountLink = (token: string, telegramId: number, username?: string) =>
+    this.request<{ userId: number; wallet: string | null }>("POST", "/internal/telegram/account-links/redeem", { body: { token, telegramId, username } });
+  startAccountLink = (telegramId: number, username?: string) =>
+    this.request<{ token: string; expiresInS: number }>("POST", "/internal/telegram/account-links", { body: { telegramId, username } });
   signalNotify = (id: string) => this.maybe<SignalNotify>("GET", `/internal/telegram/signals/${id}`);
   saveCard = (id: string, messageId: number) => this.request("POST", `/internal/telegram/signals/${id}/card`, { body: { messageId } });
   purchaseNotify = (id: string) =>

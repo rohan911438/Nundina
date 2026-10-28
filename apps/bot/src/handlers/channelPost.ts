@@ -1,5 +1,5 @@
 import { Composer } from "grammy";
-import { ApiError } from "../api.js";
+import { announceVerified, botCanPost, channelFacts, verify } from "../channels.js";
 import { draftCard } from "../cards.js";
 import { sendSafe, type Ctx, type Deps } from "../context.js";
 import { en } from "../i18n/en.js";
@@ -62,25 +62,17 @@ export function channelPostHandlers(deps: Deps) {
   return c;
 }
 
+/** Fallback when the bot was already admin: the code says which profile, Telegram says who owns the channel. */
 async function linkChannel(ctx: Ctx & { chat: { id: number; title?: string } }, deps: Deps, code: string) {
-  const me = await ctx.api.getChatMember(ctx.chat.id, ctx.me.id);
-  const canPost = me.status === "administrator" && me.can_post_messages;
-  if (!canPost) {
+  if (!(await botCanPost(ctx.api, ctx.chat.id, ctx.me.id))) {
     await sendSafe(deps, ctx.api, ctx.chat.id, en.linkNeedsAdmin);
     return;
   }
-  try {
-    await deps.api.linkChannel(code, ctx.chat.id, ctx.chat.title ?? "");
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 400) {
-      await sendSafe(deps, ctx.api, ctx.chat.id, en.linkBadCode);
-      return;
-    }
-    throw e;
-  }
-  // the code is single-use, but don't leave it in the channel
+  // the code is single-use, but don't leave it in the channel either way
   await ctx.api.deleteMessage(ctx.chat.id, ctx.channelPost!.message_id).catch(() => undefined);
-  const provider = await deps.api.providerForChannel(ctx.chat.id);
-  if (provider?.telegramId) await sendSafe(deps, ctx.api, provider.telegramId, en.linkDone(ctx.chat.title ?? provider.displayName));
-  deps.log("info", "channel linked", { chatId: ctx.chat.id, provider: provider?.handle });
+  const facts = await channelFacts(ctx.api, ctx.chat.id);
+  const o = await verify(() => deps.api.linkChannel(code, facts), facts);
+  if (o.ok) return announceVerified(deps, ctx.api, o);
+  // channel posts are anonymous, so the refusal goes to the channel
+  await sendSafe(deps, ctx.api, ctx.chat.id, o.code === "bad_code" ? en.linkBadCode : en.channelRefused(o.message));
 }

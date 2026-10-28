@@ -29,10 +29,20 @@ export interface Call {
   payload: any;
 }
 
+const user = (id: number) => ({ id, is_bot: false, first_name: `User${id}`, username: `user${id}` });
+
 export function harness(opts: { admin?: boolean } = {}) {
   const calls: Call[] = [];
   const scheduled: { name: string; data: any; startAfter: Date; key: string }[] = [];
   let messageId = 5000;
+  /** What the fake Telegram reports about any channel (tests set the owner/admins). */
+  const channel = {
+    admins: [] as { id: number; status: "creator" | "administrator" }[],
+    title: "Alpha Calls",
+    username: "alphacalls" as string | undefined,
+    members: 1200,
+    botAdmin: opts.admin !== false,
+  };
   const deps: Deps = {
     api: new Api("http://api.test", "test-internal-secret-0123456789", (url, init) => Promise.resolve(app.request(url, init))),
     links: LINKS,
@@ -45,17 +55,23 @@ export function harness(opts: { admin?: boolean } = {}) {
     calls.push({ method, payload });
     let result: unknown = true;
     if (method === "sendMessage") result = { message_id: ++messageId, date: 0, chat: { id: (payload as any).chat_id, type: "private" }, text: (payload as any).text };
-    if (method === "getChatMember")
-      result = { status: opts.admin === false ? "member" : "administrator", can_post_messages: true, user: BOT_INFO };
+    if (method === "getChatMember") result = { status: channel.botAdmin ? "administrator" : "member", can_post_messages: true, user: BOT_INFO };
+    if (method === "getChat") result = { id: (payload as any).chat_id, type: "channel", title: channel.title, username: channel.username };
+    if (method === "getChatMemberCount") result = channel.members;
+    if (method === "getChatAdministrators")
+      result = [
+        { status: "administrator", user: BOT_INFO, can_post_messages: true },
+        ...channel.admins.map((a) => ({ status: a.status, user: user(a.id) })),
+      ];
     return { ok: true, result } as any;
   });
 
   let updateId = 1;
-  const user = (id: number) => ({ id, is_bot: false, first_name: `User${id}`, username: `user${id}` });
   return {
     bot,
     deps,
     calls,
+    channel,
     scheduled,
     sent: (chatId?: number) => calls.filter((c) => c.method === "sendMessage" && (chatId == null || c.payload.chat_id === chatId)),
     reset: () => {
@@ -79,6 +95,18 @@ export function harness(opts: { admin?: boolean } = {}) {
       bot.handleUpdate({
         update_id: updateId++,
         channel_post: { message_id: messageId, date: Math.floor(Date.now() / 1000), chat: { id: chatId, type: "channel", title }, text },
+      } as any),
+    /** The bot's own status in a channel changed (added as admin, demoted, removed). */
+    myChatMember: (chatId: number, fromId: number, from: string, to: string, canPost = true) =>
+      bot.handleUpdate({
+        update_id: updateId++,
+        my_chat_member: {
+          chat: { id: chatId, type: "channel", title: "Alpha Calls" },
+          from: user(fromId),
+          date: Math.floor(Date.now() / 1000),
+          old_chat_member: { status: from, user: BOT_INFO, ...(from === "administrator" ? { can_post_messages: true } : {}) },
+          new_chat_member: { status: to, user: BOT_INFO, ...(to === "administrator" ? { can_post_messages: canPost } : {}) },
+        },
       } as any),
     editedChannelPost: (chatId: number, messageId: number, text: string) =>
       bot.handleUpdate({
