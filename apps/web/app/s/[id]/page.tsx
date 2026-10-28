@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import type { ApiSignalDetail } from "@nundina/shared";
 import { BuyBox } from "@/components/signal/BuyBox";
+import { Lifecycle } from "@/components/signal/Lifecycle";
 import { ProofBox } from "@/components/signal/ProofBox";
 import { SignalLevels } from "@/components/signal/SignalLevels";
 import { SignalStatusPill } from "@/components/signal/SignalStatusPill";
@@ -108,6 +109,11 @@ export default async function SignalPage({ params }: Props) {
         <div className="min-w-0 space-y-4">
           <Card>
             <CardBody>
+              <Lifecycle s={s} st={st} />
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
               <SignalLevels s={s} now={now} />
             </CardBody>
           </Card>
@@ -179,7 +185,7 @@ function StateBanner({ s, st }: { s: ApiSignalDetail; st: SignalState }) {
   };
   const c = copy[st];
   return (
-    <div className={cn("mt-6 rounded-2xl border p-4 sm:p-5", c.tone)} data-testid="state-banner">
+    <div key={st} className={cn("rise mt-6 rounded-2xl border p-4 sm:p-5", c.tone)} data-testid="state-banner">
       <p className="font-medium">{c.title}</p>
       <p className="mt-1 text-sm text-muted">{c.body}</p>
     </div>
