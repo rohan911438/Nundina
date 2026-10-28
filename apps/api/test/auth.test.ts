@@ -66,6 +66,22 @@ describe("SIWE", () => {
     const r = await postJson("/auth/verify", { message, signature: await account.signMessage({ message }) });
     expect(r.status).toBe(400);
   });
+
+  it("rejects a message signed for another site (phishing relay)", async () => {
+    const account = privateKeyToAccount(generatePrivateKey());
+    const { body } = await getJson("/auth/nonce");
+    const message = createSiweMessage({
+      address: account.address,
+      chainId: 31337,
+      domain: "nundina-airdrop.example",
+      nonce: body.nonce,
+      uri: "https://nundina-airdrop.example",
+      version: "1",
+    });
+    const r = await postJson("/auth/verify", { message, signature: await account.signMessage({ message }) });
+    expect(r.status).toBe(401);
+    expect(r.body.error.message).toMatch(/different site/);
+  });
 });
 
 describe("Telegram initData", () => {

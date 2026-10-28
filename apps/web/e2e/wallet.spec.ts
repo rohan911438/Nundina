@@ -16,7 +16,10 @@ test.skip(!stack || !process.env.WALLET_E2E, "wallet e2e stack not running");
 test.describe.configure({ mode: "serial" });
 
 /** Connect → sign in → (optionally) derive the decryption key, through the WalletGate. */
-async function walkGate(page: Page, needKey: boolean) {
+async function walkGate(page: Page, needKey: boolean, done: string) {
+  // wait for the page to settle on either the gate or the gated content: isVisible() below doesn't
+  // wait, and on a cold dev compile the gate can render after the first check
+  await expect(page.getByTestId("wallet-gate").or(page.getByTestId(done)).first()).toBeVisible({ timeout: 30_000 });
   const steps = needKey ? 3 : 2; // the mock connector is already on the right chain
   for (let i = 0; i < steps; i++) {
     const next = page.getByTestId("wallet-next");
@@ -28,7 +31,7 @@ async function walkGate(page: Page, needKey: boolean) {
 
 test("ConfirmSignal: provider edits and locks a draft on-chain", async ({ page }) => {
   await page.goto(`/tg/confirm/${stack!.draftId}`);
-  await walkGate(page, false);
+  await walkGate(page, false, "confirm-form");
   const form = page.getByTestId("confirm-form");
   await expect(form).toBeVisible({ timeout: 30_000 });
   await expect(form.getByText("BTC LONG 81500")).toBeVisible();
@@ -50,7 +53,7 @@ test("BuyFlow: pay via the HSP mandate (direct rail), credited, decrypted on dev
   const t0 = Date.now();
   // ?web=1: stay on the Mini App screen in a normal browser (otherwise it redirects to /s/:id)
   await page.goto(`/tg/buy/${stack!.signalId}?web=1`);
-  await walkGate(page, true);
+  await walkGate(page, true, "buy-flow");
   await expect(page.getByTestId("buy-flow")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("capacity")).not.toHaveText("—", { timeout: 15_000 });
   await page.getByTestId("pay").click();
@@ -71,7 +74,7 @@ test("BuyFlow: pay via the HSP mandate (direct rail), credited, decrypted on dev
 
 test("Agents: create, see the one-time key, pause and resume", async ({ page }) => {
   await page.goto("/dashboard/agents");
-  await walkGate(page, false);
+  await walkGate(page, false, "policy-submit");
   await expect(page.getByTestId("policy-submit")).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("policy-submit").click();
   await expect(page.getByTestId("api-key")).toContainText("nk_", { timeout: 20_000 });

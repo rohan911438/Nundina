@@ -65,6 +65,20 @@ async function linkTelegram(c: Context, userId: number) {
   });
 }
 
+/** SIWE `domain` (host[:port]) whose hostname is one of WEB_ORIGIN's; the port doesn't matter. */
+function allowedDomain(domain: string | undefined): boolean {
+  if (!domain) return false;
+  const host = (s: string) => {
+    try {
+      return new URL(s.includes("://") ? s : `http://${s}`).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
+  };
+  const d = host(domain);
+  return d != null && env().WEB_ORIGIN.split(",").some((o) => host(o.trim()) === d);
+}
+
 const VerifyBody =z.object({ message: z.string().min(10), signature: z.string().regex(/^0x[0-9a-fA-F]+$/) });
 
 export const siweRoutes = new Hono<AppEnv>()
@@ -83,6 +97,9 @@ export const siweRoutes = new Hono<AppEnv>()
     if (!parsed.address || !parsed.nonce) throw badRequest("bad_message", "Not a SIWE message");
     if (parsed.chainId !== env().CHAIN_ID) throw badRequest("wrong_chain", `Sign in on chain ${env().CHAIN_ID}`);
     if (parsed.expirationTime && parsed.expirationTime.getTime() < Date.now()) throw unauthorized("Message expired");
+    // EIP-4361: the message must name our site, or a phishing page could fetch our nonce, have the
+    // wallet sign for its own domain and trade that signature for a session on the victim's wallet
+    if (!allowedDomain(parsed.domain)) throw unauthorized("Sign-in message is for a different site");
 
     // single-use nonce
     const used = await db()
