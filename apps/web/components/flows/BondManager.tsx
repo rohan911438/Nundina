@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { erc20Abi, formatUnits, maxUint256, parseUnits, type Address } from "viem";
+import { erc20Abi, formatUnits, parseUnits, type Address } from "viem";
 import { useConfig, useReadContract } from "wagmi";
 import { readContract, waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { providerRegistryAbi } from "@nundina/shared/abis";
@@ -60,7 +60,8 @@ export function BondManager({ provider, defaultPriceUsd, onChange }: { provider:
       const value = parseUnits(amount, 6);
       const allowance = await readContract(wagmi, { address: p.bondToken, abi: erc20Abi, functionName: "allowance", args: [provider, registry] });
       if (allowance < value) {
-        const h = await writeContract(wagmi, { address: p.bondToken, abi: erc20Abi, functionName: "approve", args: [registry, maxUint256] });
+        // exact amount, never unlimited: wallets flag unlimited approvals as drainer behaviour
+        const h = await writeContract(wagmi, { address: p.bondToken, abi: erc20Abi, functionName: "approve", args: [registry, value] });
         await waitForTransactionReceipt(wagmi, { hash: h });
       }
       return writeContract(wagmi, { address: registry, abi: providerRegistryAbi, functionName: "depositBond", args: [value] });
