@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "allowImportingTsExtensions": true },
-  "include": ["src", "test", "ponder.config.ts", "ponder.schema.ts", "ponder-env.d.ts"]
+  "include": ["src", "projector", "test", "ponder.config.ts", "ponder.schema.ts", "ponder-env.d.ts"]
 }

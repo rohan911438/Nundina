@@ -33,9 +33,9 @@ export interface CreateIntentParams {
 }
 
 export interface Intent {
-  /** = paymentId (mandateHash on the mock / coordinator rails, cart_mandate_id on the gateway). */
+  /** = paymentId (mandateHash on the direct / coordinator rails, cart_mandate_id on the gateway). */
   intentId: string;
-  /** Payer signs this and transfers to `payee` itself (mock / coordinator rails). */
+  /** Payer signs this and transfers to `payee` itself (direct / coordinator rails). */
   mandateTypedData?: MandateTypedData;
   /** HashKey Merchant gateway: the payer authorises at `paymentUrl`; the gateway broadcasts the transfer. */
   checkout?: { paymentUrl: string; paymentRequestId: string; cartMandateId: string };
@@ -57,7 +57,7 @@ export interface Verification {
 }
 
 export interface PaymentRail {
-  readonly name: "mock" | "hsp";
+  readonly name: "direct" | "hsp";
   createIntent(p: CreateIntentParams): Promise<Intent>;
   submit(p: { intentId: string; mandateSig?: Hex; txHash: Hex }): Promise<{ paymentId: string }>;
   verify(paymentId: string): Promise<Verification>;

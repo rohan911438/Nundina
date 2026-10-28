@@ -34,7 +34,8 @@ const EnvSchema = z.object({
   SESSION_SECRET: optional,
   TELEGRAM_BOT_TOKEN: optional,
 
-  HSP_MODE: z.enum(["mock", "live"]).default("mock"),
+  // direct = payer-signed mandate + on-chain transfer, verified by us; live = the HSP gateway. "mock" is the old name of direct
+  HSP_MODE: z.preprocess((v) => (v === "mock" ? "direct" : v), z.enum(["direct", "live"]).default("direct")),
   HSP_COORDINATOR_URL: optional,
   HSP_API_KEY: optional,
   HSP_CHAIN: optional,
@@ -48,7 +49,7 @@ const EnvSchema = z.object({
   HSP_MERCHANT_NAME: z.string().default("Nundina"),
   /** Base URL of the HSP explorer (defaults to <coordinator>/explorer). */
   HSP_EXPLORER_URL: optional,
-  /** Mock rail adapter key (signs receipts); defaults to a key derived from INTERNAL_SECRET. */
+  /** Direct rail adapter key (signs receipts); defaults to a key derived from INTERNAL_SECRET. */
   MOCK_ADAPTER_PRIVATE_KEY: optionalHex32,
   /** USDC.e EIP-3009 one-transaction purchase path. */
   FAST_PATH_ENABLED: z.preprocess((v) => v === "true" || v === "1", z.boolean()).default(false),

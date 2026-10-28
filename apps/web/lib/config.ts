@@ -1,9 +1,10 @@
-/** Public config. `API_URL` is read on the server; the browser uses `NEXT_PUBLIC_API_URL`. */
+/**
+ * Public config. The server calls the API directly (`API_URL`); the browser goes through this
+ * origin's `/backend` proxy (next.config.ts) so the session cookie is first-party.
+ */
 export const config = {
   apiUrl:
-    (typeof window === "undefined" ? process.env.API_URL : undefined) ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:8787",
+    typeof window === "undefined" ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787") : "/backend",
   /** The API as the outside world reaches it (snippets, docs). */
   publicApiUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",

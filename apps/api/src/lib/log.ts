@@ -1,6 +1,18 @@
+import { createRequire } from "node:module";
 import pino from "pino";
 
 const isTest = process.env.NODE_ENV === "test";
+
+/** pino-pretty as an absolute path, or null: other runtimes that import this logger (the Ponder
+ *  indexer sets NODE_ENV=development too) can't resolve the bare name and pino would throw. */
+function prettyTarget(): string | null {
+  try {
+    return createRequire(import.meta.url).resolve("pino-pretty");
+  } catch {
+    return null;
+  }
+}
+const pretty = process.env.NODE_ENV === "development" ? prettyTarget() : null;
 const level = process.env.LOG_LEVEL ?? (isTest ? "debug" : "info");
 
 /** Field names that must never reach a log line (any of the first three nesting levels). */
@@ -19,9 +31,7 @@ export const log = pino(
   {
     level,
     redact: { paths: redactPaths, censor: "[redacted]" },
-    ...(process.env.NODE_ENV === "development"
-      ? { transport: { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss" } } }
-      : {}),
+    ...(pretty ? { transport: { target: pretty, options: { colorize: true, translateTime: "HH:MM:ss" } } } : {}),
   },
   isTest ? testSink : undefined,
 );

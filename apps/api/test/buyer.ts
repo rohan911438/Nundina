@@ -1,4 +1,4 @@
-/** Buyer helpers for integration tests: a funded wallet with a user row, and the MockRail purchase flow. */
+/** Buyer helpers for integration tests: a funded wallet with a user row, and the DirectRail purchase flow. */
 import { expect } from "vitest";
 import type { Hex, PrivateKeyAccount } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";

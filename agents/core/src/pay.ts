@@ -10,7 +10,7 @@ import type { AgentWallet } from "./wallet.js";
  *  1. `@hsp/mcp` hsp_quote → hsp_pay with SpendGuard (per-tx cap, daily cap, recipient = escrow).
  *     TODO(confirm): package not published yet; see NEEDS-FROM-USER.
  *  2. `@hsp/sdk` HSPClient.pay. TODO(confirm): same.
- *  3. Direct (this): the evm-transfer flow the API's MockRail and HspRail both verify.
+ *  3. Direct (this): the evm-transfer flow the API's DirectRail and HspRail both verify.
  */
 export interface PayPath {
   readonly name: string;

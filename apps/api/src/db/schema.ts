@@ -182,7 +182,7 @@ export const purchases = pgTable(
     /** ACCEPT | REJECT | RETRYABLE */
     outcomeClass: text("outcome_class"),
     creditedTx: text("credited_tx"),
-    /** HSP explorer link (or the chain explorer for the mock rail). */
+    /** HSP explorer link (or the chain explorer for the direct rail). */
     explorerUrl: text("explorer_url"),
     /** recoverUncredited tx when a rejected transfer was returned to the payer. */
     recoveryTx: text("recovery_tx"),
@@ -416,7 +416,7 @@ export const railPayments = pgTable("rail_payments", {
   updatedAt: updatedAt(),
 });
 
-/** Projection cursor of the indexer (apps/indexer/src/sync.ts). */
+/** Projection cursor of the indexer (apps/indexer/projector/sync.ts). */
 export const indexerCursor = pgTable("indexer_cursor", {
   name: text("name").primaryKey(),
   blockNumber: bigint("block_number", { mode: "number" }).notNull().default(0),

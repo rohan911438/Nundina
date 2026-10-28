@@ -38,7 +38,8 @@ async function up() {
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
-  throw new Error("web did not start on :3001");
+  // Next allows one `next dev` per app folder: a dev server on :3000 for apps/web blocks this one
+  throw new Error("web did not start on :3001 (is another `next dev` running for apps/web? stop it first)");
 }
 
 // one stack = one draft, one signal, one mock wallet: the suite can run once, on one device project

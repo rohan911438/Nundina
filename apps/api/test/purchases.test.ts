@@ -1,4 +1,4 @@
-/** MockRail purchase flow end to end on anvil (skips without Foundry or local keys). */
+/** DirectRail purchase flow end to end on anvil (skips without Foundry or local keys). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { keccak256, encodeAbiParameters, type Hex, type PrivateKeyAccount } from "viem";
@@ -25,7 +25,7 @@ import { getJson, INTERNAL, makeProvider, postJson } from "./helpers.js";
 const PRICE = 1_000_000n; // 1 USDT
 const escrow = contractAddress(31337, "PerformanceEscrow");
 
-describe.skipIf(!canRunChain)("purchases (MockRail on anvil)", () => {
+describe.skipIf(!canRunChain)("purchases (DirectRail on anvil)", () => {
   const provider = privateKeyToAccount(generatePrivateKey());
   let chain: Chain;
   let signalId: bigint;

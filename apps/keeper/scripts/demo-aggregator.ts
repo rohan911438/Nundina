@@ -24,7 +24,7 @@ Object.assign(process.env, {
   INTERNAL_SECRET: SECRET,
   TELEGRAM_BOT_TOKEN: "123456:TEST_TOKEN",
   CHAIN_ID: "31337",
-  HSP_MODE: "mock",
+  HSP_MODE: "direct",
   RUN_WORKERS: "true",
   PORT: String(PORT),
   API_URL: `http://localhost:${PORT}`,

@@ -46,7 +46,7 @@ test("ConfirmSignal: provider edits and locks a draft on-chain", async ({ page }
   await expect(page.getByTestId("committed")).toContainText("Locked on-chain");
 });
 
-test("BuyFlow: pay via HSP (mock), credited, decrypted on device", async ({ page }) => {
+test("BuyFlow: pay via the HSP mandate (direct rail), credited, decrypted on device", async ({ page }) => {
   const t0 = Date.now();
   // ?web=1: stay on the Mini App screen in a normal browser (otherwise it redirects to /s/:id)
   await page.goto(`/tg/buy/${stack!.signalId}?web=1`);

@@ -139,7 +139,7 @@ export async function insertBuyer(signalId: bigint, telegramId: number, status =
   const [u] = await db().insert(users).values({ wallet: account.address.toLowerCase(), telegramId }).returning();
   const [p] = await db()
     .insert(purchases)
-    .values({ signalId, buyerUserId: u!.id, buyerAddress: account.address.toLowerCase(), amount: "500000", token: `0x${"11".repeat(20)}`, rail: "mock", status })
+    .values({ signalId, buyerUserId: u!.id, buyerAddress: account.address.toLowerCase(), amount: "500000", token: `0x${"11".repeat(20)}`, rail: "direct", status })
     .returning();
   return { userId: u!.id, purchaseId: p!.id };
 }

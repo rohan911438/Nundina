@@ -107,11 +107,12 @@ export async function checkMandateSig(td: MandateTypedData, sig: Hex): Promise<b
 }
 
 /**
- * Fake Coordinator with the same shapes as HSP: mandates in Postgres, settlement observed on-chain,
+ * Direct rail: the payer signs the HSP-style Payment Mandate and pays the escrow itself. Same shapes as
+ * HSP, without the hosted gateway: mandates in Postgres, settlement observed on-chain,
  * receipts signed by a local adapter key and verified against the pinned adapter address.
  */
-export class MockRail implements PaymentRail {
-  readonly name = "mock" as const;
+export class DirectRail implements PaymentRail {
+  readonly name = "direct" as const;
 
   async createIntent(p: CreateIntentParams): Promise<Intent> {
     const payee = addr("PerformanceEscrow");
