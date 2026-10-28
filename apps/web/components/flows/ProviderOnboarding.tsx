@@ -167,11 +167,11 @@ function Checklist() {
     { key: "identity", label: "ERC-8004 identity and provider registration", done: hasProfile && onChain },
     { key: "telegram", label: "Telegram account connected", done: tgLinked },
     { key: "channel", label: channel ? `Channel verified: ${channel.title ?? "your channel"}` : "Telegram channel verified", done: linked },
-    { key: "bond", label: "Bond deposited", done: bonded },
+    { key: "bond", label: "Bond deposited", done: bonded, optional: true },
     { key: "kyc", label: "KYC attestation (optional)", done: false, soon: true },
   ];
 
-  const required = items.filter((it) => !it.soon);
+  const required = items.filter((it) => !it.soon && !it.optional);
   const doneCount = required.filter((it) => it.done).length;
   const nextKey = required.find((it) => !it.done)?.key;
   const handleOk = /^[a-z0-9_]{3,32}$/i.test(handle);
@@ -201,6 +201,7 @@ function Checklist() {
             </span>
             <span className={cn(it.done && "text-muted")}>{it.label}</span>
             {it.key === nextKey ? <span className="ml-auto text-xs text-accent">next</span> : null}
+            {it.optional && !it.done ? <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">optional</span> : null}
             {it.soon ? <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">coming soon</span> : null}
           </li>
         ))}
@@ -357,7 +358,10 @@ function Checklist() {
 
       {hasProfile && onChain ? (
         <section className="space-y-3">
-          <h2 className="font-medium">Bond</h2>
+          <h2 className="font-medium">Bond <span className="text-sm font-normal text-muted">(optional)</span></h2>
+          <p className="text-sm text-muted">
+            Optional on testnet: we couldn&apos;t find a public test USDT faucet on HashKey testnet, and the bond is paid in USDT (HSK only pays gas). Without a bond you can still post and lock free signals; paid signals need bond so buyers can be refunded if you&apos;re wrong.
+          </p>
           <BondManager provider={address} defaultPriceUsd={profile.data?.provider.defaultPriceUsd ?? price} onChange={() => void reg.refetch()} />
         </section>
       ) : null}
