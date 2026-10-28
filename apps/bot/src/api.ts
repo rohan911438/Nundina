@@ -31,6 +31,8 @@ export interface SignalNotify {
   provider: ProviderCard;
   post: { chatId: number; messageId: number } | null;
   cardMessageId: number | null;
+  /** Where the cards go: the post's chat, or the provider's verified channel for signals posted from the web. */
+  channelId?: number | null;
   buyers: { purchaseId: string; status: string; telegramId: number }[];
   settlement: { outcome: string; payout: string; refundsTotal: string; slashTotal: string; settleTx: string | null } | null;
 }

@@ -189,6 +189,8 @@ export const purchasesApi = {
 };
 
 export const draftsApi = {
+  /** A blank draft for a signal typed in the app instead of posted in the channel. */
+  create: () => authed<{ id: number; status: string }>("/drafts", { body: { rawText: "Posted from the provider dashboard", parser: "manual" } }),
   get: (id: string) => authed<DraftView>(`/drafts/${id}`),
   prepare: (id: string, signal: Record<string, unknown>) =>
     authed<{ salt: string; commitHash: string; typedData: { domain: Record<string, unknown>; types: Record<string, { name: string; type: string }[]>; primaryType: string; message: Record<string, string> } }>(

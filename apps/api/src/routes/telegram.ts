@@ -111,11 +111,14 @@ export const telegramRoutes = new Hono<AppEnv>()
       .innerJoin(users, eq(users.id, purchases.buyerUserId))
       .where(and(eq(purchases.signalId, id), inArray(purchases.status, PAID), isNotNull(users.telegramId)));
     const st = await db().query.settlements.findFirst({ where: eq(settlements.signalId, id) });
+    // a signal posted from the web has no channel post: its cards go to the verified channel
+    const owner = s.tgChatId ? null : await db().query.providers.findFirst({ where: eq(providers.id, s.providerId) });
     return c.json({
       signal: { ...publicSignal(s, provider), pricePerSub: s.price },
       provider,
       post: s.tgChatId && s.tgMessageId ? { chatId: s.tgChatId, messageId: s.tgMessageId } : null,
       cardMessageId: s.tgCardMessageId,
+      channelId: s.tgChatId ?? (owner?.channelVerifiedAt ? owner.channelId : null),
       buyers,
       settlement: st ? { outcome: st.outcome, payout: st.payout, refundsTotal: st.refundsTotal, slashTotal: st.slashTotal, settleTx: st.settleTx } : null,
     });

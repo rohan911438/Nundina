@@ -13,11 +13,12 @@ const REMINDER_LEAD_S = 3600;
 export async function notifyLocked(deps: Deps, tg: Telegram, { signalId }: JobData["notify.locked"]) {
   const n = await deps.api.signalNotify(signalId);
   if (!n) return;
-  if (n.post && n.cardMessageId == null) {
+  const chatId = n.post?.chatId ?? n.channelId;
+  if (chatId && n.cardMessageId == null) {
     const card = lockedCard(deps.links, n.signal);
-    const m = await sendSafe(deps, tg, n.post.chatId, card.text, {
+    const m = await sendSafe(deps, tg, chatId, card.text, {
       reply_markup: card.keyboard,
-      reply_parameters: { message_id: n.post.messageId, allow_sending_without_reply: true },
+      ...(n.post ? { reply_parameters: { message_id: n.post.messageId, allow_sending_without_reply: true } } : {}),
     });
     if (m) await deps.api.saveCard(signalId, m.message_id);
   }
@@ -41,10 +42,12 @@ export async function notifyResult(deps: Deps, tg: Telegram, { signalId }: JobDa
   const n = await deps.api.signalNotify(signalId);
   if (!n) return;
   const card = resultCard(deps.links, n);
-  if (n.post) {
-    await sendSafe(deps, tg, n.post.chatId, card.text, {
+  const chatId = n.post?.chatId ?? (n.cardMessageId != null ? n.channelId : null);
+  const replyTo = n.cardMessageId ?? n.post?.messageId;
+  if (chatId) {
+    await sendSafe(deps, tg, chatId, card.text, {
       reply_markup: card.keyboard,
-      reply_parameters: { message_id: n.cardMessageId ?? n.post.messageId, allow_sending_without_reply: true },
+      ...(replyTo != null ? { reply_parameters: { message_id: replyTo, allow_sending_without_reply: true } } : {}),
     });
   }
   const seen = new Set<number>();
