@@ -17,3 +17,7 @@ contracts/broadcast/Deploy.s.sol/31337/
 # merchant / signing keys: never commit
 secrets/
 *.pem
+
+.vercel
+.env*
+!.env.example
