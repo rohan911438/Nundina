@@ -33,7 +33,7 @@ describe("notifications", () => {
     expect(card.reply_parameters.message_id).toBe(77);
     const [buy, proof] = card.reply_markup.inline_keyboard[0];
     expect(buy.url).toBe(`https://t.me/nundina_test_bot?start=buy_${s.id}`);
-    expect(proof.url).toBe(`https://app.test/signal/${s.id}`);
+    expect(proof.url).toBe(`https://app.test/s/${s.id}`);
 
     const row = await db().query.signals.findFirst({ where: eq(signals.id, s.id) });
     expect(row!.tgCardMessageId).toBeGreaterThan(0);

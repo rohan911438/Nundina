@@ -9,6 +9,7 @@ import { useBalance, useConfig, useReadContract } from "wagmi";
 import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { AgentPolicyForm, DEFAULT_POLICY } from "@/components/flows/AgentPolicyForm";
 import { WalletGate } from "@/components/flows/WalletGate";
+import { DashSkeleton, rowIn } from "@/components/dashboard/Stats";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "@/components/ui/external";
 import { ApiError } from "@/lib/api";
@@ -32,13 +33,13 @@ function Inner() {
   const [created, setCreated] = useState<{ apiKey: string; agentId: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (list.isPending) return <div className="h-64 animate-pulse rounded-2xl bg-surface" />;
+  if (list.isPending) return <DashSkeleton stats={4} />;
   const agents = list.data?.items.filter((a) => a.type === "execution") ?? [];
 
   return (
     <div className="space-y-8" data-testid="agents-dashboard">
       {created ? (
-        <div className="rounded-2xl border border-locked/40 bg-locked/[0.06] p-5" role="status">
+        <div className="rise rounded-2xl border border-locked/40 bg-locked/[0.06] p-5" role="status">
           <p className="font-medium">Agent API key (shown once)</p>
           <p className="mt-1 text-sm text-muted">Store it somewhere safe. It lets the agent act within its policy; you can pause it here at any time.</p>
           <button
@@ -55,7 +56,7 @@ function Inner() {
       {agents.length ? (
         agents.map((a) => <AgentCard key={a.id} a={a} />)
       ) : (
-        <section className="rounded-2xl border border-border p-5">
+        <section className="rise rounded-2xl border border-border p-5">
           <h2 className="font-medium">Create an execution agent</h2>
           <p className="mt-1 text-sm text-muted">It gets its own wallet. Fund it, set limits, and it buys live signals that pass your policy, logging why for every buy or skip.</p>
           <div className="mt-4">
@@ -98,6 +99,8 @@ function AgentCard({ a }: { a: AgentView }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const budget = Number(a.policy.dailyBudgetUsd);
+  const spentPct = budget > 0 ? Math.min(100, (Number(a.spentTodayUsd) / budget) * 100) : 0;
 
   async function act(label: string, fn: () => Promise<unknown>) {
     setBusy(label);
@@ -120,10 +123,11 @@ function AgentCard({ a }: { a: AgentView }) {
     });
 
   return (
-    <section className="space-y-5 rounded-2xl border border-border p-5" data-testid="agent-card">
+    <section className="rise space-y-5 rounded-2xl border border-border p-5" data-testid="agent-card">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-medium">{a.name}</h2>
-        <span className={cn("rounded-full px-2 py-0.5 text-xs", a.paused ? "bg-locked/15 text-locked" : "bg-win/15 text-win")} data-testid="agent-status">
+        <span className={cn("pill-in inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs", a.paused ? "bg-locked/15 text-locked" : "bg-win/15 text-win")} key={String(a.paused)} data-testid="agent-status">
+          <span aria-hidden className={cn("size-1.5 rounded-full bg-current", !a.paused && "pulse-ring")} />
           {a.paused ? "Paused" : "Running"}
         </span>
         <Button
@@ -160,6 +164,12 @@ function AgentCard({ a }: { a: AgentView }) {
           <dt className="text-xs text-muted">Spent today</dt>
           <dd className="num">
             {usd(a.spentTodayUsd)} / {usd(a.policy.dailyBudgetUsd)}
+          </dd>
+          <dd aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className={cn("h-full rounded-full transition-[width] duration-700 ease-[var(--ease-out)]", spentPct >= 90 ? "bg-locked" : "bg-accent")}
+              style={{ width: `${spentPct}%` }}
+            />
           </dd>
         </div>
       </dl>
@@ -204,8 +214,8 @@ function AgentCard({ a }: { a: AgentView }) {
         <h3 className="font-medium">Activity</h3>
         <ul className="mt-2 divide-y divide-border rounded-xl border border-border text-sm" data-testid="agent-activity">
           {activity.data?.items.length ? (
-            activity.data.items.map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2">
+            activity.data.items.map((x, i) => (
+              <li key={x.id} style={rowIn(i)} className="pill-in flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2">
                 <span className={cn("w-12 font-medium uppercase", x.decision === "buy" ? "text-win" : x.decision === "error" ? "text-loss" : "text-muted")}>{x.decision}</span>
                 {x.signalId ? (
                   <Link href={`/s/${x.signalId}`} className="hover:text-accent">

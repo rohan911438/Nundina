@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "@/components/ui/external";
 import { cn } from "@/lib/cn";
 import { explorer, r, usd, utc } from "@/lib/format";
-import { signalState } from "@/lib/signal-state";
+import { isBuyable, signalState } from "@/lib/signal-state";
 
 export function SignalHistory({ signals }: { signals: ApiSignal[] }) {
   if (!signals.length) return <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">No signals yet.</p>;
@@ -46,7 +46,7 @@ export function SignalHistory({ signals }: { signals: ApiSignal[] }) {
               {locked ? usd(s.priceUsd) : r(s.rMultiple)}
             </span>
             <span className="hidden justify-self-end sm:col-start-5 sm:row-start-1 sm:block">
-              {locked ? (
+              {locked && isBuyable(s) ? (
                 <Button asChild size="sm" variant="accent">
                   <Link href={`/s/${s.id}`}>Buy</Link>
                 </Button>

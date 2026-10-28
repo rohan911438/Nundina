@@ -19,7 +19,8 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev",
-    url: "http://localhost:3000",
+    // the wallet runner (e2e/run-wallet.mjs) serves on WEB_URL itself; reuse it
+    url: process.env.WEB_URL ?? "http://localhost:3000",
     reuseExistingServer: true,
     timeout: 120_000,
   },

@@ -18,7 +18,7 @@ const EnvSchema = z.object({
   RELAYER_PRIVATE_KEY: optionalHex32,
   CREDIT_SIGNER_PRIVATE_KEY: optionalHex32,
   /** Minimum relayer balance (wei) before it refuses to send. Default 0.05 HSK. */
-  RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
+  RELAYER_MIN_BALANCE_WEI: z.coerce.bigint().default(5_000_000_000_000_000n), // 0.005 HSK ≈ 20 relays at 1 gwei
   /** Monitoring (prompt 15): keeper wallet + alert threshold, other services' /health URLs, team chat for alerts. */
   KEEPER_ADDRESS: optional,
   KEEPER_MIN_BALANCE_WEI: z.coerce.bigint().default(50_000_000_000_000_000n),
@@ -40,6 +40,12 @@ const EnvSchema = z.object({
   HSP_CHAIN: optional,
   HSP_ADAPTER_ADDRESS: optional,
   HSP_FACILITATOR_URL: optional,
+  /** HashKey Merchant gateway (HSP): docs/HSP-ONBOARDING.md */
+  HSP_MERCHANT_BASE_URL: z.string().default("https://merchant-qa.hashkeymerchant.com"),
+  HSP_MERCHANT_PRIVATE_KEY_PATH: z.string().default("secrets/hsp_merchant_private_key.pem"),
+  HSP_MERCHANT_APP_KEY: optional,
+  HSP_MERCHANT_APP_SECRET: optional,
+  HSP_MERCHANT_NAME: z.string().default("Nundina"),
   /** Base URL of the HSP explorer (defaults to <coordinator>/explorer). */
   HSP_EXPLORER_URL: optional,
   /** Mock rail adapter key (signs receipts); defaults to a key derived from INTERNAL_SECRET. */

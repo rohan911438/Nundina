@@ -84,7 +84,11 @@ switch (cmd) {
       "script/Deploy.s.sol",
       "--rpc-url",
       cfg.rpc(),
+      // forge requires --broadcast (and the sender's key) with --resume; it re-sends nothing that already landed
+      "--broadcast",
       "--resume",
+      "--private-key",
+      need("DEPLOYER_PRIVATE_KEY"),
       "--verify",
       "--verifier",
       "blockscout",

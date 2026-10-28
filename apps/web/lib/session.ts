@@ -27,8 +27,8 @@ export async function authed<T>(path: string, init: { method?: string; body?: un
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
-  const json = (await res.json().catch(() => null)) as (T & { error?: { code: string; message: string } }) | null;
-  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? "http_error", json?.error?.message ?? res.statusText);
+  const json = (await res.json().catch(() => null)) as (T & { error?: { code: string; message: string; details?: unknown } }) | null;
+  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? "http_error", json?.error?.message ?? res.statusText, json?.error?.details);
   return json as T;
 }
 
@@ -51,6 +51,8 @@ export interface PurchaseView {
   receiptHash: string | null;
   creditedTx: string | null;
   explorerUrl: string | null;
+  /** HSP gateway checkout, while the purchase is unpaid. */
+  paymentUrl?: string | null;
   recoveryTx: string | null;
   rejectReason: string | null;
   createdAt: string;
@@ -66,7 +68,10 @@ export interface MandateTypedData {
 
 export interface Intent {
   intentId: string;
-  mandateTypedData: MandateTypedData;
+  /** Mock / Coordinator rails: sign this, then transfer. */
+  mandateTypedData?: MandateTypedData;
+  /** HashKey Merchant gateway: the buyer pays at this checkout instead. */
+  checkout?: { paymentUrl: string; paymentRequestId: string; cartMandateId: string };
   payee: string;
   reference: string;
 }
@@ -167,6 +172,8 @@ export const purchasesApi = {
   authorize: (id: string, authorization: Record<string, string>, signature: string) =>
     authed<PurchaseView>(`/purchases/${id}/authorize`, { body: { authorization, signature } }),
   get: (id: string) => authed<PurchaseView>(`/purchases/${id}`),
+  /** Gateway purchases: asks the API to re-read the HSP checkout status. */
+  sync: (id: string) => authed<PurchaseView>(`/purchases/${id}/sync`, { body: {} }),
   key: (id: string) => authed<{ purchaseId: string; signalId: string; wrappedKey: string; ciphertext: string; iv: string }>(`/purchases/${id}/key`),
 };
 

@@ -22,6 +22,11 @@ const env = {
   WEB_URL: "http://localhost:3001",
 };
 const shell = process.platform === "win32";
+// a dev server already on :3001 has no mock wallet, and the tests would fail with "Provider not found."
+if (await fetch("http://localhost:3001/legal").then(() => true, () => false)) {
+  console.error("Something is already serving :3001. Stop it first: this runner starts its own server with the mock wallet");
+  process.exit(1);
+}
 const web = spawn("npx", ["next", "dev", "--port", "3001"], { cwd: join(dir, ".."), env, stdio: "ignore", shell });
 
 async function up() {
@@ -36,12 +41,16 @@ async function up() {
   throw new Error("web did not start on :3001");
 }
 
+// one stack = one draft, one signal, one mock wallet: the suite can run once, on one device project
+const args = process.argv.slice(2);
+if (!args.some((a) => a.startsWith("--project"))) args.push("--project", "desktop");
+
 let code = 1;
 try {
   await up();
   // compile the wallet routes once so the first test doesn't race a dev-server reload
   for (const p of [`/tg/confirm/${stack.draftId}`, `/tg/buy/${stack.signalId}?web=1`, "/dashboard", "/dashboard/agents"]) await fetch(`http://localhost:3001${p}`);
-  const pw = spawn("npx", ["playwright", "test", "e2e/wallet.spec.ts", ...process.argv.slice(2)], { cwd: join(dir, ".."), env, stdio: "inherit", shell });
+  const pw = spawn("npx", ["playwright", "test", "e2e/wallet.spec.ts", ...args], { cwd: join(dir, ".."), env, stdio: "inherit", shell });
   code = await new Promise((r) => pw.on("exit", r));
 } finally {
   if (shell) spawnSync("taskkill", ["/F", "/T", "/PID", String(web.pid)]);

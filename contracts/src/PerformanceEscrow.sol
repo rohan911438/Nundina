@@ -99,6 +99,7 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
     error FeeTooHigh();
     error ZeroAddress();
     error NothingToWithdraw();
+    error OutcomeFinal();
 
     constructor(
         ISignalBook book_,
@@ -232,13 +233,18 @@ contract PerformanceEscrow is IPerformanceEscrow, AccessControl, Pausable, Reent
     }
 
     /// @notice Refunds every subscriber (no slash) if a signal was not settled within 24h of expiry.
-    ///         Never pausable: funds can never get stuck.
+    ///         Never pausable: funds can never get stuck. If the outcome is already final, `settle`
+    ///         applies it instead (a right call still pays the provider when the keeper was late).
     function claimRefund(uint256 id) external nonReentrant {
         Pot storage pot = _pots[id];
         if (pot.state != PotState.OPEN) revert NotOpen();
         ISignalBook.Record memory r = book.getSignal(id);
         if (r.status == ISignalBook.Status.NONE) revert NotOpen();
         if (block.timestamp <= uint256(r.validUntil) + MAX_SETTLE_DELAY) revert TooEarly();
+        // a failing resolver must never block refunds, so its answer is only used when it gives one
+        try resolver.outcomeOf(id) returns (IOutcomeResolver.Outcome o, int256, bool fin) {
+            if (fin && o != IOutcomeResolver.Outcome.NONE) revert OutcomeFinal();
+        } catch {}
         pot.state = PotState.REFUNDED;
         (uint256 refunds,) = _refundAll(id, pot, r.provider, 0);
         emit Settled(id, 0, 0, refunds, 0);

@@ -40,7 +40,7 @@ export function EquityCurve({ points }: { points: { time: number; value: number 
   }, [points]);
 
   if (points.length < 2) {
-    return <div className="grid h-56 place-items-center text-sm text-muted">Not enough settled signals for a curve yet.</div>;
+    return <div className="grid h-24 place-items-center rounded-xl border border-dashed border-border text-sm text-muted">Not enough settled signals for a curve yet.</div>;
   }
   return <div ref={ref} className="h-56 w-full" role="img" aria-label={`Cumulative R: ${points.at(-1)!.value}R over ${points.length} signals`} />;
 }

@@ -9,6 +9,8 @@ Source: HashKey Merchant API docs, https://hashkey-merchant.github.io/#/ (repo `
 | 3. Accept the invite email, verify it and bind the organization | ⏳ You (admin email) |
 | 4. Create an app in the merchant console → `app_key`, `app_secret` → `.env` (`HSP_MERCHANT_APP_KEY`, `HSP_MERCHANT_APP_SECRET`) | ⏳ You |
 
+After step 4: set `HSP_MODE=live`, and in the merchant console set **webhook_url** to `https://<api host>/hsp/webhook`.
+
 QA (testnet) gateway: `https://merchant-qa.hashkeymerchant.com` (`HSP_MERCHANT_BASE_URL`).
 
 ## Merchant public key (safe to share)
@@ -46,3 +48,13 @@ MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEkQa5IsDv0Sli/7pUIkeVmTTw1GHNtMr4
 > Thanks!
 
 Fill in `<admin email>` before sending. It must be an inbox you can open, because the invite link goes there.
+
+## What is wired (apps/api)
+
+- `src/payments/hspGateway.ts`: HMAC request signing, the ES256K `merchant_authorization` JWT (`cart_hash` = SHA-256 of the canonical-JSON contents) and webhook signature checks (±300 s).
+- `src/payments/HspGatewayRail.ts`: used when `HSP_MODE=live` and `HSP_MERCHANT_APP_KEY` is set. Each purchase creates a one-time order whose x402 method pays **the PerformanceEscrow** (`pay_to`) in USDT or USDC. The API returns `intent.checkout.paymentUrl`.
+- `POST /hsp/webhook` and `POST /purchases/:id/sync` (poll) move a purchase to SUBMITTED once the gateway reports a tx. The verify job then re-reads the gateway (`payment-safe` / `payment-finalized`) **and** checks on-chain that the escrow received exactly the price from the payer before the credit signer attests. `payment-failed` → REJECTED.
+- Web: Buy opens the HSP checkout and polls `/sync`. MCP: `buy_signal` returns `paymentUrl` and `get_purchase` syncs. Agents: skip (blocked) until the agent Payment Mandate API is documented (question 1 above).
+- Tests: `apps/api/test/hspGateway.test.ts` (fake gateway + anvil).
+
+Caveat: if the gateway charges the payer a fee on top (`pay_amount` > `order_amount`), that is fine as long as the escrow still receives the exact price. If it deducts the fee from the transfer, our check fails safe (no credit) and we need their fee model.

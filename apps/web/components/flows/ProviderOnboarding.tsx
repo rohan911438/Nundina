@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Loader2, Send } from "lucide-react";
 import { useState } from "react";
@@ -143,15 +144,36 @@ function Checklist() {
     { key: "kyc", label: "KYC attestation (optional)", done: false, soon: true },
   ];
 
+  const required = items.filter((it) => !it.soon);
+  const doneCount = required.filter((it) => it.done).length;
+  const nextKey = required.find((it) => !it.done)?.key;
+  const handleOk = /^[a-z0-9_]{3,32}$/i.test(handle);
+
   return (
     <div className="space-y-6" data-testid="onboarding">
+      <div aria-hidden className="h-1 overflow-hidden rounded-full bg-surface-2">
+        <div className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out" style={{ width: `${(doneCount / required.length) * 100}%` }} />
+      </div>
       <ol className="space-y-2">
         {items.map((it, i) => (
-          <li key={it.key} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
-            <span className={cn("grid size-6 place-items-center rounded-full border text-xs", it.done ? "border-win bg-win text-bg" : "border-border text-muted")}>
-              {it.done ? <Check aria-hidden className="size-3.5" /> : i + 1}
+          <li
+            key={it.key}
+            style={{ animationDelay: `${i * 60}ms` }}
+            className={cn(
+              "rise flex items-center gap-3 rounded-xl border bg-surface px-4 py-3 text-sm transition-colors duration-300",
+              it.key === nextKey ? "border-accent/50 bg-accent/[0.05]" : "border-border",
+            )}
+          >
+            <span
+              className={cn(
+                "grid size-6 place-items-center rounded-full border text-xs transition-colors duration-300",
+                it.done ? "border-win bg-win text-bg" : it.key === nextKey ? "pulse-ring border-accent text-accent" : "border-border text-muted",
+              )}
+            >
+              {it.done ? <Check aria-hidden className="stage-in size-3.5" /> : i + 1}
             </span>
             <span className={cn(it.done && "text-muted")}>{it.label}</span>
+            {it.key === nextKey ? <span className="ml-auto text-xs text-accent">next</span> : null}
             {it.soon ? <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">coming soon</span> : null}
           </li>
         ))}
@@ -164,7 +186,8 @@ function Checklist() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="text-xs text-muted">Handle</span>
-                <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="cryptoalpha" className="input mt-1" />
+                <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="cryptoalpha" className="input mt-1" aria-invalid={handle !== "" && !handleOk} />
+                {handle !== "" && !handleOk ? <span className="mt-1 block text-xs text-loss">3–32 letters, numbers or _</span> : null}
               </label>
               <label className="block">
                 <span className="text-xs text-muted">Display name</span>
@@ -182,7 +205,7 @@ function Checklist() {
           ) : (
             <p className="text-sm text-muted">Profile @{profile.data?.provider.handle} exists; finish the on-chain registration.</p>
           )}
-          <Button variant="accent" onClick={() => void register()} disabled={Boolean(busy) || (!hasProfile && !/^[a-z0-9_]{3,32}$/i.test(handle))} data-testid="register">
+          <Button variant="accent" onClick={() => void register()} disabled={Boolean(busy) || (!hasProfile && !handleOk)} data-testid="register">
             {busy ? <Loader2 aria-hidden className="animate-spin" /> : null}
             {busy === "identity" ? "Minting ERC-8004 identity…" : busy === "registry" ? "Registering…" : "Register"}
           </Button>
@@ -195,7 +218,7 @@ function Checklist() {
           <h2 className="font-medium">Link your Telegram channel</h2>
           <ol className="list-decimal space-y-1 pl-5 text-sm text-muted">
             <li>
-              Add <span className="text-text">@{config.botUsername}</span> to your channel as an admin with &quot;Post messages&quot;.
+              Add <span className="text-text">{config.botUsername ? `@${config.botUsername}` : "the Nundina bot"}</span> to your channel as an admin with &quot;Post messages&quot;.
             </li>
             <li>Post the code below in the channel. The bot checks it, links the channel and deletes the message.</li>
           </ol>
@@ -213,11 +236,15 @@ function Checklist() {
               Get link code
             </Button>
           )}
-          <Button asChild variant="ghost">
-            <a href={`https://t.me/${config.botUsername}?start=link_channel`} target="_blank" rel="noreferrer noopener">
-              <Send aria-hidden /> Open the bot
-            </a>
-          </Button>
+          {config.botUsername ? (
+            <Button asChild variant="ghost">
+              <a href={`https://t.me/${config.botUsername}?start=link_channel`} target="_blank" rel="noreferrer noopener">
+                <Send aria-hidden /> Open the bot
+              </a>
+            </Button>
+          ) : (
+            <p className="text-xs text-muted">The Telegram bot isn't connected on this deployment yet.</p>
+          )}
         </section>
       ) : null}
 
@@ -225,6 +252,18 @@ function Checklist() {
         <section className="space-y-3">
           <h2 className="font-medium">Bond</h2>
           <BondManager provider={address} defaultPriceUsd={profile.data?.provider.defaultPriceUsd ?? price} onChange={() => void reg.refetch()} />
+        </section>
+      ) : null}
+
+      {doneCount === required.length ? (
+        <section className="rise rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="onboarding-done">
+          <p className="flex items-center gap-2 font-medium text-win">
+            <Check aria-hidden className="stage-in size-4" /> You&apos;re live
+          </p>
+          <p className="mt-1 text-sm text-muted">Post a signal in your channel as usual; the bot DMs you a draft to lock on-chain.</p>
+          <Button asChild variant="outline" className="mt-3">
+            <Link href="/dashboard/provider">Open provider dashboard</Link>
+          </Button>
         </section>
       ) : null}
 

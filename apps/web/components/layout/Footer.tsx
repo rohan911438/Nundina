@@ -36,9 +36,11 @@ export async function Footer() {
           <Link href="/status">Status</Link>
         </FooterCol>
         <FooterCol title="Community">
-          <a href={`https://t.me/${config.botUsername}`} target="_blank" rel="noreferrer noopener">
-            Telegram bot
-          </a>
+          {config.botUsername ? (
+            <a href={`https://t.me/${config.botUsername}`} target="_blank" rel="noreferrer noopener">
+              Telegram bot
+            </a>
+          ) : null}
           <a href={config.githubUrl} target="_blank" rel="noreferrer noopener">
             GitHub
           </a>

@@ -25,7 +25,7 @@ export function TgShell({ children }: { children: ReactNode }) {
     if (to) router.replace(to);
   };
   return (
-    <div data-tg-app className="px-4 pb-24 pt-4">
+    <div data-tg-app className="px-4">
       <TelegramProvider onOutside={onOutside}>
         <WalletProviders>{children}</WalletProviders>
       </TelegramProvider>

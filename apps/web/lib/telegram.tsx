@@ -2,9 +2,13 @@
 
 import {
   backButton,
+  bindViewportCssVars,
   closeMiniApp,
+  hapticFeedbackImpactOccurred,
+  hapticFeedbackNotificationOccurred,
   init,
   isTMA,
+  isThemeParamsDark,
   mainButton,
   miniApp,
   offBackButtonClick,
@@ -53,7 +57,13 @@ export function TelegramProvider({ children, onOutside }: { children: ReactNode;
     safe(() => themeParams.mountSync());
     safe(() => themeParams.bindCssVars());
     safe(() => miniApp.bindCssVars());
-    void safe(() => viewport.mount())?.then(() => safe(() => viewport.expand()));
+    void safe(() => viewport.mount())?.then(() => {
+      safe(() => viewport.expand());
+      safe(() => bindViewportCssVars()); // --tg-viewport-* incl. safe-area insets
+    });
+    // follow Telegram light/dark so our palette (and contrast) matches the chat around it
+    const dark = safe(() => isThemeParamsDark());
+    if (dark != null) document.documentElement.dataset.theme = dark ? "dark" : "light";
     safe(() => backButton.mount());
     safe(() => mainButton.mount());
     safe(() => miniApp.ready());
@@ -65,6 +75,13 @@ export function TelegramProvider({ children, onOutside }: { children: ReactNode;
 
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>;
 }
+
+/** Haptics for the moments that matter. No-ops outside Telegram or on clients without them. */
+export const haptic = {
+  success: () => void safe(() => hapticFeedbackNotificationOccurred("success")),
+  error: () => void safe(() => hapticFeedbackNotificationOccurred("error")),
+  tap: () => void safe(() => hapticFeedbackImpactOccurred("light")),
+};
 
 /** Shows Telegram's BackButton while mounted. */
 export function useBackButton(onBack: () => void) {

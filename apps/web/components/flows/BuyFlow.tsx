@@ -19,15 +19,16 @@ import { purchasesApi, type PurchaseView } from "@/lib/session";
 import { decryptPurchase, KEYED_STATUSES, useMyPurchase, type UnlockedSignal } from "@/lib/unlock";
 import { useWallet, walletErrorMessage } from "@/lib/wallet/useWallet";
 import { WalletGate } from "./WalletGate";
+import { Scramble } from "@/components/motion/HashScramble";
 
-type Stage = "idle" | "signing" | "transfer" | "verifying" | "credited" | "unlocking" | "done" | "error";
+type Stage = "idle" | "signing" | "checkout" | "transfer" | "verifying" | "credited" | "unlocking" | "done" | "error";
 const STAGES: { key: Stage; label: string }[] = [
   { key: "transfer", label: "Paid" },
   { key: "verifying", label: "Verified by HSP" },
   { key: "credited", label: "Credited to escrow" },
   { key: "done", label: "Unlocked" },
 ];
-const STAGE_RANK: Record<Stage, number> = { idle: -1, signing: -1, transfer: 0, verifying: 1, credited: 2, unlocking: 2, done: 3, error: -1 };
+const STAGE_RANK: Record<Stage, number> = { idle: -1, signing: -1, checkout: -1, transfer: 0, verifying: 1, credited: 2, unlocking: 2, done: 3, error: -1 };
 
 /** Human copy for API and wallet failures (spec: network, balance, rejected, capacity, HSP POLICY). */
 function buyError(e: unknown): string {
@@ -35,6 +36,7 @@ function buyError(e: unknown): string {
     if (e.code === "capacity_full") return "This provider's bond can't cover another buyer right now. Try again after some of their signals settle.";
     if (e.code === "already_bought") return "You already bought this signal.";
     if (e.code === "signal_closed" || e.code === "signal_expired") return "This signal is no longer open.";
+    if (e.code === "token_locked") return `${e.message}. We switched it for you; press Pay again.`;
     return e.message;
   }
   return walletErrorMessage(e);
@@ -57,6 +59,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [purchaseId, setPurchaseId] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState<UnlockedSignal | null>(null);
 
   const price6 = BigInt(Math.round(Number(signal.priceUsd) * 1e6));
@@ -82,12 +85,13 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
   const capacity = cap.data ?? null;
   const enough = balances[token] == null || balances[token]! >= price6;
 
-  // Poll the purchase until the key is delivered (or it is rejected).
+  // Poll the purchase until the key is delivered (or it is rejected). Gateway checkouts poll through
+  // /sync, which also asks HSP whether the buyer has paid yet.
   const poll = useQuery({
-    queryKey: ["purchase", purchaseId],
-    queryFn: () => purchasesApi.get(purchaseId!),
+    queryKey: ["purchase", purchaseId, Boolean(checkoutUrl)],
+    queryFn: () => (checkoutUrl ? purchasesApi.sync(purchaseId!) : purchasesApi.get(purchaseId!)),
     enabled: Boolean(purchaseId) && stage !== "done" && stage !== "error",
-    refetchInterval: 1500,
+    refetchInterval: checkoutUrl ? 3000 : 1500,
   });
   useEffect(() => {
     const p = poll.data;
@@ -130,6 +134,13 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       setStage("signing");
       const { purchaseId: id, intent } = await purchasesApi.create(signal.id, token);
       setPurchaseId(id);
+      if (intent.checkout) {
+        // HashKey Merchant gateway: the buyer authorises the transfer to escrow on HSP's checkout page
+        setCheckoutUrl(intent.checkout.paymentUrl);
+        setStage("checkout");
+        window.open(intent.checkout.paymentUrl, "_blank", "noopener");
+        return;
+      }
       if (token === "USDC_E" && fastPathEnabled && escrow) {
         const auth = await signFastPath(wagmi, {
           token: TOKENS.USDC_E.address(),
@@ -151,6 +162,9 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       await purchasesApi.submit(id, mandateSig, txHash);
       setStage("verifying");
     } catch (e) {
+      // the pot already holds the other token: switch to it so the next press just works
+      const locked = e instanceof ApiError && e.code === "token_locked" ? (e.details as { token?: TokenKey } | undefined)?.token : undefined;
+      if (locked && locked in TOKENS) setToken(locked);
       setStage("error");
       setError(buyError(e));
     }
@@ -215,13 +229,16 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
       </fieldset>
 
       {paying ? (
-        <ol className="space-y-2 rounded-2xl border border-border p-4 text-sm" aria-live="polite" data-testid="buy-progress">
+        <ol className="rise space-y-2 rounded-2xl border border-border p-4 text-sm" aria-live="polite" data-testid="buy-progress">
+          <li aria-hidden className="mb-3 h-1 overflow-hidden rounded-full bg-surface-2">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-700 ease-[var(--ease-out)]" style={{ width: `${Math.max(6, ((STAGE_RANK[stage] + 1) / STAGES.length) * 100)}%` }} />
+          </li>
           {STAGES.map((s) => {
             const done = STAGE_RANK[stage] >= STAGE_RANK[s.key];
             const active = STAGE_RANK[stage] + 1 === STAGE_RANK[s.key];
             return (
-              <li key={s.key} className={cn("flex items-center gap-2", !done && !active && "text-muted")}>
-                {done ? <Check aria-hidden className="size-4 text-win" /> : active ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <span className="size-4" />}
+              <li key={s.key} className={cn("flex items-center gap-2 transition-colors duration-300", !done && !active && "text-muted")}>
+                {done ? <Check aria-hidden className="stage-in size-4 text-win" /> : active ? <Loader2 aria-hidden className="size-4 animate-spin text-accent" /> : <span className="size-4 rounded-full border border-border" />}
                 <span>{s.label}</span>
                 {s.key === "verifying" && p?.paymentId ? (
                   <ExternalLink href={explorer.hsp(p.paymentId)} className="ml-auto text-xs text-muted" label="HSP payment">
@@ -239,6 +256,15 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
         </ol>
       ) : null}
 
+      {stage === "checkout" && checkoutUrl ? (
+        <p className="text-sm text-muted" data-testid="hsp-checkout">
+          Finish paying in the HSP checkout.{" "}
+          <ExternalLink href={checkoutUrl} label="HSP checkout">
+            Open checkout
+          </ExternalLink>
+        </p>
+      ) : null}
+
       {!enough ? (
         <p role="alert" className="text-sm text-loss">
           Not enough {TOKENS[token].symbol}: you need {usd(signal.priceUsd)}.
@@ -252,7 +278,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
 
       <Button size="lg" variant="accent" className="w-full" onClick={() => void buy()} disabled={paying || !enough || capacity === 0n} data-testid="pay">
         {paying ? <Loader2 aria-hidden className="animate-spin" /> : <Lock aria-hidden />}
-        {stage === "signing" ? "Confirm in wallet…" : paying ? "Processing…" : `Pay ${usd(signal.priceUsd)} ${TOKENS[token].symbol}`}
+        {stage === "signing" ? "Confirm in wallet…" : stage === "checkout" ? "Waiting for HSP checkout…" : paying ? "Processing…" : `Pay ${usd(signal.priceUsd)} ${TOKENS[token].symbol}`}
       </Button>
       <p className="text-center text-xs text-muted">Paid through HSP · the key is decrypted on this device only</p>
     </div>
@@ -261,7 +287,7 @@ function BuyInner({ signal, provider, onDone }: { signal: ApiSignalDetail; provi
 
 export function UnlockedCard({ s, purchase }: { s: UnlockedSignal; purchase: PurchaseView | null }) {
   return (
-    <div className="rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="unlocked">
+    <div className="rise rounded-2xl border border-win/30 bg-win/[0.06] p-5" data-testid="unlocked">
       <p className="flex items-center gap-2 text-sm text-win">
         <Check aria-hidden className="size-4" /> Unlocked on this device
       </p>
@@ -278,7 +304,10 @@ export function UnlockedCard({ s, purchase }: { s: UnlockedSignal; purchase: Pur
         ).map(([k, v, t]) => (
           <div key={k}>
             <dt className="text-xs text-muted">{k}</dt>
-            <dd className={cn("num mt-0.5 text-lg font-medium", t)}>{price(v, s.market)}</dd>
+            <dd className={cn("num mt-0.5 text-lg font-medium", t)}>
+              <span className="sr-only">{price(v, s.market)}</span>
+              <Scramble final={price(v, s.market)} />
+            </dd>
           </div>
         ))}
       </dl>

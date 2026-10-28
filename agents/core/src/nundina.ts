@@ -145,7 +145,7 @@ export class Nundina {
 
   // subscriber path
   createPurchase(signalId: string) {
-    return this.req<{ purchaseId: string; status: string; intent: { intentId: string; mandateTypedData: MandateTypedData; payee: `0x${string}` } }>("POST", "/purchases", { signalId, token: "USDT" });
+    return this.req<{ purchaseId: string; status: string; intent: { intentId: string; mandateTypedData?: MandateTypedData; payee: `0x${string}`; checkout?: { paymentUrl: string } } }>("POST", "/purchases", { signalId, token: "USDT" });
   }
   submitPurchase(id: string, b: { mandateSig: string; txHash: string }) {
     return this.req<PurchaseView>("POST", `/purchases/${id}/submit`, b, { "idempotency-key": `agent:${id}:${b.txHash}` });

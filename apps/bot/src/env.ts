@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+/** Unset or empty (`KEY=` in .env) both fall back to the default. */
+const withDefault = (d: string) => z.preprocess((v) => (v === "" ? undefined : v), z.string().default(d));
 const optional = z.preprocess((v) => (v === "" ? undefined : v), z.string().optional());
 
 const EnvSchema = z.object({
@@ -11,11 +13,11 @@ const EnvSchema = z.object({
   /** Public HTTPS URL of this bot's webhook. Unset = long polling (dev). */
   BOT_WEBHOOK_URL: optional,
   BOT_PORT: z.coerce.number().default(8788),
-  API_URL: z.string().default("http://127.0.0.1:8787"),
+  API_URL: withDefault("http://127.0.0.1:8787"),
   INTERNAL_SECRET: z.string().min(16),
   /** Mini App base (served by apps/web under /tg). */
-  MINI_APP_URL: z.string().default("http://localhost:3000/tg"),
-  WEB_URL: z.string().default("http://localhost:3000"),
+  MINI_APP_URL: withDefault("http://localhost:3000/tg"),
+  WEB_URL: withDefault("http://localhost:3000"),
   DATABASE_URL: z.string().default("postgres://nundina:nundina@localhost:5432/nundina"),
   CHAIN_ID: z.coerce.number().default(31337),
   /** Enables the LLM fallback parser. */

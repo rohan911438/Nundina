@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { useQuery } from "@tanstack/react-query";
 import {
   CandlestickSeries,
@@ -115,12 +116,13 @@ export function PriceChart({
     };
   }, [data, levels, committedAt, touchAt, touchWin]);
 
+  const empty = isError || data?.candles.length === 0;
   return (
-    <div className="relative h-72 w-full sm:h-96">
+    <div className={cn("relative w-full transition-[height] duration-500", empty ? "h-24" : "h-72 sm:h-96")}>
       <div ref={ref} className="absolute inset-0" role="img" aria-label={`${market} price chart around the signal`} />
       {!data && !isError ? <div className="absolute inset-0 animate-pulse rounded-xl bg-surface-2/60" aria-hidden /> : null}
-      {isError || data?.candles.length === 0 ? (
-        <p className="absolute inset-0 grid place-items-center text-sm text-muted">Price data unavailable for this window.</p>
+      {empty ? (
+        <p className="absolute inset-0 grid place-items-center rounded-xl border border-dashed border-border text-sm text-muted">Price data unavailable for this window.</p>
       ) : null}
     </div>
   );

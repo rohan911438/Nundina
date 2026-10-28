@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
 import { filterQuery, MARKET_OPTIONS, PERIODS, TYPES, type Filters } from "@/lib/leaderboard";
 
@@ -44,8 +44,21 @@ function Segmented<T extends string | undefined>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current?.querySelector<HTMLElement>('[aria-checked="true"]');
+    setPill(el ? { left: el.offsetLeft, width: el.offsetWidth } : null);
+  }, [value]);
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-full border border-border bg-surface p-0.5">
+    <div ref={ref} role="radiogroup" aria-label={label} className="relative inline-flex rounded-full border border-border bg-surface p-0.5">
+      {pill ? (
+        <span
+          aria-hidden
+          className="absolute inset-y-0.5 rounded-full bg-text transition-[left,width] duration-300 ease-[var(--ease-out)] motion-reduce:transition-none"
+          style={{ left: pill.left, width: pill.width }}
+        />
+      ) : null}
       {options.map((o) => {
         const active = o.v === value;
         return (
@@ -55,7 +68,7 @@ function Segmented<T extends string | undefined>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.v)}
-            className={cn("h-8 rounded-full px-3 text-sm transition-colors", active ? "bg-text text-bg" : "text-muted hover:text-text")}
+            className={cn("relative h-8 rounded-full px-3 text-sm transition-colors duration-300", active ? cn("text-bg", !pill && "bg-text") : "text-muted hover:text-text")}
           >
             {o.l}
           </button>

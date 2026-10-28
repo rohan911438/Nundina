@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import type { ApiSignalDetail } from "@nundina/shared";
 import { BuyBox } from "@/components/signal/BuyBox";
+import { Lifecycle } from "@/components/signal/Lifecycle";
 import { ProofBox } from "@/components/signal/ProofBox";
 import { SignalLevels } from "@/components/signal/SignalLevels";
 import { SignalStatusPill } from "@/components/signal/SignalStatusPill";
@@ -12,7 +13,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, isNotFound } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { hhmm, r, usd, utc } from "@/lib/format";
-import { signalState, type SignalState } from "@/lib/signal-state";
+import { isBuyable, signalState, type SignalState } from "@/lib/signal-state";
 
 export const revalidate = 15;
 
@@ -55,6 +56,8 @@ export default async function SignalPage({ params }: Props) {
   const st = signalState(s);
   const now = Date.now();
   const live = st === "locked" || st === "live";
+  // the escrow refuses purchases after validUntil; the keeper settles shortly after
+  const buyable = isBuyable(s, now);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-14" data-state={st}>
@@ -106,6 +109,11 @@ export default async function SignalPage({ params }: Props) {
         <div className="min-w-0 space-y-4">
           <Card>
             <CardBody>
+              <Lifecycle s={s} st={st} />
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
               <SignalLevels s={s} now={now} />
             </CardBody>
           </Card>
@@ -121,7 +129,7 @@ export default async function SignalPage({ params }: Props) {
           ) : null}
         </div>
         <aside className="space-y-4">
-          {live ? <BuyBox signal={s} /> : null}
+          {buyable ? <BuyBox signal={s} /> : live ? <SalesClosed /> : null}
           <Card>
             <CardHeader>
               <CardTitle>Proof</CardTitle>
@@ -177,9 +185,21 @@ function StateBanner({ s, st }: { s: ApiSignalDetail; st: SignalState }) {
   };
   const c = copy[st];
   return (
-    <div className={cn("mt-6 rounded-2xl border p-4 sm:p-5", c.tone)} data-testid="state-banner">
+    <div key={st} className={cn("rise mt-6 rounded-2xl border p-4 sm:p-5", c.tone)} data-testid="state-banner">
       <p className="font-medium">{c.title}</p>
       <p className="mt-1 text-sm text-muted">{c.body}</p>
+    </div>
+  );
+}
+
+function SalesClosed() {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-5" data-testid="sales-closed">
+      <p className="flex items-center gap-2 font-medium">
+        <span aria-hidden className="pulse-ring size-2 rounded-full bg-locked text-locked" />
+        Sales closed
+      </p>
+      <p className="mt-2 text-sm text-muted">This signal has expired. The oracle is checking the result; buyers are paid out or refunded automatically.</p>
     </div>
   );
 }

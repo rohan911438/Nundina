@@ -17,7 +17,7 @@ export function LiveTicker({ initial }: { initial: ApiPage<ApiSignal> }) {
     refetchInterval: 30_000,
   });
   const items = data.items;
-  if (!items.length) return <div className="h-12 border-y border-border" />;
+  if (!items.length) return null;
   return (
     <section aria-label="Recently settled signals" className="border-y border-border bg-surface/50">
       <div className="relative flex h-12 items-center overflow-hidden">

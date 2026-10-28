@@ -93,6 +93,8 @@ export function buySignal(ctx: Ctx) {
         if (spent + price > e.MCP_DEMO_DAILY_UNITS) return fail("spend_guard", `Demo wallet daily cap of ${fromUnits(e.MCP_DEMO_DAILY_UNITS)} USD reached`);
         const created = await d.api.post<any>("/purchases", { signalId: a.id, token: a.token });
         const td = created.intent.mandateTypedData;
+        // TODO(hsp-pay-mandate): gateway rail has only a browser checkout until pay-mandate is documented
+        if (!td) return fail("gateway_checkout", "This API takes payments through the HSP checkout page, which the demo wallet cannot use. Nothing was spent.", { purchaseId: created.purchaseId, paymentUrl: created.intent.checkout?.paymentUrl ?? null });
         if (getAddress(td.message.payee) !== getAddress(created.intent.payee)) return fail("spend_guard", "Mandate payee is not the escrow");
         const acct = d.account;
         const mandateSig = await acct.signTypedData({
@@ -119,6 +121,19 @@ export function buySignal(ctx: Ctx) {
       }
       if (!a.purchaseId || !a.mandateSig || !a.txHash) {
         const created = await ctx.api.post<any>("/purchases", { signalId: a.id, token: a.token });
+        if (created.intent.checkout) {
+          return ok({
+            mode: "delegated",
+            step: "checkout",
+            purchaseId: created.purchaseId,
+            status: created.status,
+            priceUsd: s.priceUsd,
+            paymentUrl: created.intent.checkout.paymentUrl,
+            payee: created.intent.payee,
+            next: "Open paymentUrl and pay with the wallet linked to this API key (HSP sends the funds to the escrow). Then call get_purchase with purchaseId until the key is delivered.",
+            note: `Nothing has been spent yet. ${NOT_ADVICE}`,
+          });
+        }
         return ok({
           mode: "delegated",
           step: "pay",

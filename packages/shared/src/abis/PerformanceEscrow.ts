@@ -1382,6 +1382,11 @@ export const performanceEscrowAbi = [
   },
   {
     "type": "error",
+    "name": "OutcomeFinal",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ReceiptUsed",
     "inputs": []
   },

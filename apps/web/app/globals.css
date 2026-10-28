@@ -174,10 +174,139 @@
   animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* motion: one easing curve everywhere */
+:root {
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* scroll reveal (components/motion/Reveal). Hidden only once JS has marked it "out". */
+.reveal[data-reveal="out"],
+.reveal[data-reveal="out"] .reveal-child {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.reveal,
+.reveal .reveal-child {
+  transition:
+    opacity 0.7s var(--ease-out),
+    transform 0.7s var(--ease-out);
+}
+.reveal .reveal-child {
+  transition-delay: calc(var(--i, 0) * 80ms + 80ms);
+}
+
+/* hero settlement loop */
+@keyframes draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+.draw-line {
+  animation: draw 2.2s var(--ease-out) both;
+}
+@keyframes ping-dot {
+  0% {
+    r: 4;
+    opacity: 1;
+  }
+  70% {
+    r: 11;
+    opacity: 0.25;
+  }
+  100% {
+    r: 5;
+    opacity: 1;
+  }
+}
+.ping-dot {
+  animation: ping-dot 1.4s var(--ease-out) infinite;
+}
+@keyframes step-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.step-fill {
+  animation: step-fill linear both;
+}
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pill-in {
+  animation: pill-in 0.35s var(--ease-out) both;
+}
+
+/* a slow sheen across accent buttons and live markers */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+.pulse-ring {
+  animation: pulse-ring 1.8s var(--ease-out) infinite;
+}
+
+/* page transition (app/template.tsx). "backwards" so no transform lingers to trap fixed children */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.page-in {
+  animation: page-in 0.45s var(--ease-out) backwards;
+}
+
+/* stage progress in checkout flows */
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.stage-in {
+  animation: stage-in 0.3s var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
-  .rise {
+  .rise,
+  .draw-line,
+  .ping-dot,
+  .step-fill,
+  .pill-in,
+  .pulse-ring,
+  .stage-in,
+  .page-in {
     animation: none;
+  }
+  .reveal,
+  .reveal .reveal-child {
+    transition: none;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -210,5 +339,8 @@ body:has([data-tg-app]) > footer {
 [data-tg-app] {
   --tg-bg: var(--tg-theme-bg-color, var(--bg));
   background: var(--tg-bg);
-  min-height: 100dvh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  /* clear the notch / Telegram header in fullscreen mode */
+  padding-top: calc(1rem + var(--tg-viewport-content-safe-area-inset-top, 0px) + var(--tg-viewport-safe-area-inset-top, 0px));
+  padding-bottom: calc(6rem + var(--tg-viewport-safe-area-inset-bottom, 0px));
 }
