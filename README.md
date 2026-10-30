@@ -10,9 +10,9 @@
 
 *Built by **Team BROTHERHOOD** for the HashKey Chain Horizon Hackathon (Mumbai Edition): Track 2, Agent Payments & A2A Settlement*
 
-[**▶ Demo video**](https://youtu.be/ywom_FiJURU) · [**Live app**](https://nundina-signals.vercel.app) · [**Telegram bot**](https://t.me/Nundina_Signals_bot) · [**Pitch deck**](https://canva.link/ldymf0fesl676hc) · [**Status**](https://nundina-signals.vercel.app/status)
+[**Demo video**](https://youtu.be/ywom_FiJURU) · [**Live app**](https://nundina-signals.vercel.app) · [**Telegram bot**](https://t.me/Nundina_Signals_bot) · [**Pitch deck**](https://canva.link/ldymf0fesl676hc) · [**Status**](https://nundina-signals.vercel.app/status)
 
-[![Nundina demo video](https://img.youtube.com/vi/ywom_FiJURU/maxresdefault.jpg)](https://youtu.be/ywom_FiJURU)
+<img src="docs/images/hero.png" alt="Nundina: pay only when the call is right" width="100%" />
 
 </div>
 
@@ -20,29 +20,54 @@
 
 ## Contents
 
-1. [Live links](#live-links)
-2. [The problem](#the-problem)
-3. [The solution](#the-solution)
-4. [Why traders can trust it](#why-traders-can-trust-it)
-5. [System architecture](#system-architecture)
-6. [Smart contracts](#smart-contracts)
-7. [Signal lifecycle](#signal-lifecycle)
-8. [Workflow: web app](#workflow-web-app)
-9. [Workflow: Telegram bot and Mini App](#workflow-telegram-bot-and-mini-app)
-10. [Agent-to-agent (A2A) settlement](#agent-to-agent-a2a-settlement)
-11. [MCP server for AI agents](#mcp-server-for-ai-agents)
-12. [Payments and money flow](#payments-and-money-flow)
-13. [Scoring](#scoring)
-14. [Security](#security)
-15. [Deployment](#deployment)
-16. [Contract addresses](#contract-addresses)
-17. [Tech stack](#tech-stack)
-18. [Repository structure](#repository-structure)
-19. [Run it locally](#run-it-locally)
-20. [Tests](#tests)
-21. [Roadmap](#roadmap)
-22. [Documentation](#documentation)
-23. [Team and license](#team-and-license)
+<table>
+<tr>
+<td valign="top" width="33%">
+
+**Overview**
+- [Live links](#live-links)
+- [The problem](#the-problem)
+- [The solution](#the-solution)
+- [Why traders can trust it](#why-traders-can-trust-it)
+
+**Architecture**
+- [System architecture](#system-architecture)
+- [Smart contracts](#smart-contracts)
+- [Signal lifecycle](#signal-lifecycle)
+
+</td>
+<td valign="top" width="33%">
+
+**Workflows**
+- [Web app](#workflow-web-app)
+- [Telegram bot and Mini App](#workflow-telegram-bot-and-mini-app)
+- [Agent-to-agent settlement](#agent-to-agent-a2a-settlement)
+- [MCP server for AI agents](#mcp-server-for-ai-agents)
+
+**Protocol**
+- [Payments and money flow](#payments-and-money-flow)
+- [Scoring](#scoring)
+- [Security](#security)
+
+</td>
+<td valign="top" width="33%">
+
+**Build and run**
+- [Deployment](#deployment)
+- [Contract addresses](#contract-addresses)
+- [Tech stack](#tech-stack)
+- [Repository structure](#repository-structure)
+- [Run it locally](#run-it-locally)
+- [Tests](#tests)
+
+**More**
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Team and license](#team-and-license)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -52,15 +77,15 @@ Everything runs on **HashKey Chain testnet (133)**.
 
 | | Link |
 |---|---|
-| 🎬 Demo video | https://youtu.be/ywom_FiJURU |
-| 🌐 Web app (frontend, Vercel) | https://nundina-signals.vercel.app |
-| ⚙️ API (backend, Render) | https://nundina-api.onrender.com · health: [`/health`](https://nundina-api.onrender.com/health) |
-| 🗂️ Indexer (Render) | https://nundina-indexer.onrender.com/health |
-| 📊 System status | https://nundina-signals.vercel.app/status (API, relayer, keeper, indexer, settlements, HSP) |
-| 🤖 Telegram bot | [@Nundina_Signals_bot](https://t.me/Nundina_Signals_bot) |
-| 📱 Telegram Mini App | https://nundina-signals.vercel.app/tg (opens from the bot's menu button) |
-| 🏆 Leaderboard | https://nundina-signals.vercel.app/leaderboard |
-| 📑 Pitch deck | https://canva.link/ldymf0fesl676hc |
+| Demo video | https://youtu.be/ywom_FiJURU |
+| Web app (frontend, Vercel) | https://nundina-signals.vercel.app |
+| API (backend, Render) | https://nundina-api.onrender.com · health: [`/health`](https://nundina-api.onrender.com/health) |
+| Indexer (Render) | https://nundina-indexer.onrender.com/health |
+| System status | https://nundina-signals.vercel.app/status (API, relayer, keeper, indexer, settlements, HSP) |
+| Telegram bot | [@Nundina_Signals_bot](https://t.me/Nundina_Signals_bot) |
+| Telegram Mini App | https://nundina-signals.vercel.app/tg (opens from the bot's menu button) |
+| Leaderboard | https://nundina-signals.vercel.app/leaderboard |
+| Pitch deck | https://canva.link/ldymf0fesl676hc |
 
 > The backend runs on Render's free tier. If it has been idle, the first request can take up to a minute while the service wakes up.
 
@@ -68,37 +93,65 @@ Everything runs on **HashKey Chain testnet (133)**.
 
 ## The problem
 
-Thousands of Telegram "VIP signal" groups charge **₹700–7,000 a month**, and their only proof of skill is a **screenshot**, which is easy to fake.
+### A large market that runs on unverifiable claims
 
-- **Results can be faked.** Losing calls get deleted, "test" calls are hidden, and both sides of a trade get posted.
-- **Retail traders keep losing.** SEBI's study of FY25 found that **91% of individual F&O traders lost money**.
-- **Regulators keep warning** about unregistered tipsters and fake Telegram "gurus".
-- **Buyers have no refund.** When a call fails, there is no way to get money back.
-- **Honest providers are hurt most.** They have no way to prove they're honest.
+Paid trading signals are one of the largest informal financial-advice markets in India and South-East Asia. Thousands of Telegram "VIP" channels sell entry, target and stop-loss calls on crypto, forex and F&O for roughly **₹700 to ₹7,000 a month**. Telegram has more than **1 billion monthly users**, and India is its largest market.
+
+The buyers are mostly retail traders, and they are already losing. SEBI's FY25 study found that **91% of individual F&O traders lost money**, with net losses of about **₹1.05 lakh crore** in a single year. SEBI has repeatedly warned investors against unregistered tipsters and fake Telegram "gurus".
+
+### The incentives are broken
+
+A signal provider is paid a flat subscription **whether the calls are right or wrong**. Revenue depends on how good the track record *looks*, not on how good it *is*. That leads to predictable behaviour:
+
+| Practice | How it works | Why the buyer can't detect it |
+|---|---|---|
+| **Survivorship editing** | Losing calls are deleted or edited after the fact; winners are reposted | Telegram lets admins edit and delete messages with no trace |
+| **Both-sides posting** | A LONG goes to one channel and a SHORT to another; the winning side is marketed | Each subscriber only sees one channel |
+| **Vague entries** | "Buy around 67k", targets with no stop-loss, no expiry | The call can be scored as a win whatever the price does |
+| **Screenshot proof** | Win rates and P&L are shown as images | Images are trivial to fabricate and impossible to audit |
+| **No recourse** | The subscription is paid upfront and is non-refundable | A wrong call costs the buyer the fee *and* the trade |
+
+### Who pays for it
+
+- **Subscribers** pay for advice they cannot evaluate, and carry 100% of the risk when it is wrong.
+- **Honest providers** cannot prove they are honest. A real 58% win rate looks identical to a fabricated 90% one, so they lose customers to whoever markets hardest.
+- **AI agents** that buy data and signals on behalf of users have no machine-verifiable way to tell a skilled source from a lucky or dishonest one.
+
+The root cause is simple: **payment is disconnected from outcome, and the record is controlled by the person being judged.**
 
 ## The solution
 
-Nundina makes a trading signal **impossible to fake and risk-free to buy**.
+Nundina reconnects payment to outcome. A provider is paid **only when the call is right**, and the record of every call is held on-chain, where the provider cannot change it.
 
 | Step | What happens |
 |---|---|
-| 🔒 **Lock** | A provider posts a signal in Telegram as usual (or on the web). Nundina **commits it on HashKey Chain before the price moves**: timestamped, encrypted, with no edits and no deletes. |
-| 💸 **Pay** | A subscriber, or their AI agent, pays per signal through **HSP** into an on-chain escrow. The encrypted signal is delivered right away and decrypted on the buyer's device. |
-| ⚖️ **Settle** | HashKey's on-chain oracles (**APRO, Supra**) decide the result. ✅ **Right:** the provider is paid. ❌ **Wrong:** the subscriber is **refunded automatically**, plus a slice of the provider's bond. |
-| 🏅 **Prove** | Every call is revealed and scored. The track record is written to **ERC-8004** reputation, so it is public, unforgeable and portable. |
+| **1. Lock** | The provider posts a signal in Telegram as usual, or on the web. Before the price moves, Nundina **commits it to HashKey Chain**: encrypted, timestamped, and impossible to edit or delete. |
+| **2. Pay** | A subscriber, or their AI agent, pays per signal through **HSP**. The payment goes into an on-chain escrow, not to the provider. The signal is decrypted on the buyer's device right away. |
+| **3. Settle** | HashKey's on-chain oracles (**APRO, Supra**) decide the result against the committed levels. **Right:** the escrow pays the provider. **Wrong:** the buyer is **refunded automatically**, plus a slice of the provider's bond. |
+| **4. Prove** | Every call is revealed and scored with open formulas. The track record is written to **ERC-8004** reputation, so it is public, portable and verifiable by people and agents alike. |
 
-> **Every call counts.** A provider can't delete losers, hide "test" calls, or post both sides. An unrevealed signal is an automatic loss.
+### What changes
+
+| | Today | With Nundina |
+|---|---|---|
+| Provider gets paid | Upfront, regardless of accuracy | Only when the call is right |
+| Wrong call | Buyer loses the fee | Fee refunded, plus a share of the provider's bond |
+| Track record | Screenshots, editable messages | On-chain commits that can't be edited or deleted |
+| Hidden losers | Easy to delete | An unrevealed signal counts as a loss |
+| Posting both sides | Undetectable | Every commit is public and tied to one provider identity |
+| Ranking | Self-reported win rate | Score from 30+ settled calls: Wilson bound, expectancy, alpha vs BTC |
+| AI agents | No way to verify a source | Discover, verify from chain data, and buy over MCP |
 
 ## Why traders can trust it
 
 | Rule | What it means |
 |---|---|
-| 💸 **Refund if wrong** | Payment sits in escrow and comes back automatically when the call fails |
-| 🔒 **Every call counts** | Each signal is committed before the move, with no edits or deletes. An unrevealed signal counts as a loss |
-| 📊 **Skill, not luck** | Ranking needs 30+ signals and uses the Wilson lower bound, expectancy in R, and alpha vs simply holding BTC |
-| 🪙 **Skin in the game** | Providers post a bond that is slashed on losses, so coin-flip posting loses money by design |
-| 🛡️ **Verified channels** | A provider proves they are an admin of the Telegram channel; lookalike channels get a warning |
-| 🧾 **No need to trust us** | Escrow holds the funds, oracles decide outcomes, scoring is open source, and anyone can recompute it from chain data |
+| **Refund if wrong** | Payment sits in escrow and comes back automatically when the call fails |
+| **Every call counts** | Each signal is committed before the move, with no edits or deletes. An unrevealed signal counts as a loss |
+| **Skill, not luck** | Ranking needs 30+ signals and uses the Wilson lower bound, expectancy in R, and alpha vs simply holding BTC |
+| **Skin in the game** | Providers post a bond that is slashed on losses, so coin-flip posting loses money by design |
+| **Verified channels** | A provider proves they are an admin of the Telegram channel; lookalike channels get a warning |
+| **No need to trust us** | Escrow holds the funds, oracles decide outcomes, scoring is open source, and anyone can recompute it from chain data |
 
 ---
 
@@ -106,20 +159,20 @@ Nundina makes a trading signal **impossible to fake and risk-free to buy**.
 
 ```mermaid
 flowchart TB
-  subgraph Users["👥 Users"]
+  subgraph Users["Users"]
     PROV["Provider<br/>(Telegram channel / web)"]
     BUY["Subscriber<br/>(web / Telegram)"]
     EXT["External AI agent<br/>(Claude, OpenClaw, AgentKit)"]
   end
 
-  subgraph Clients["🖥️ Clients"]
+  subgraph Clients["Clients"]
     WEB["Web app<br/>Next.js on Vercel"]
     MINI["Telegram Mini App<br/>/tg routes"]
     BOT["Telegram bot<br/>grammY"]
     MCP["MCP server<br/>x402 / credits"]
   end
 
-  subgraph Backend["⚙️ Backend (Render)"]
+  subgraph Backend["Backend (Render)"]
     API["API<br/>Hono · SIWE · relayer · key service"]
     KEEP["Keeper<br/>price watcher · touch proofs · settle"]
     IDX["Indexer<br/>Ponder + projector"]
@@ -127,7 +180,7 @@ flowchart TB
     AG["Agents<br/>strategy · execution · aggregator"]
   end
 
-  subgraph Chain["⛓️ HashKey Chain"]
+  subgraph Chain["HashKey Chain"]
     BOOK["SignalBook"]
     ESC["PerformanceEscrow"]
     RES["OutcomeResolver"]
@@ -327,7 +380,7 @@ sequenceDiagram
   P->>MA: /tg/confirm/[draftId] → sign the commit
   MA->>A: confirm draft
   A->>C: relayer commits to SignalBook
-  BOT->>CH: 🔒 locked card: market, expiry, price, "refund if wrong", Buy button
+  BOT->>CH: locked card: market, expiry, price, "refund if wrong", Buy button
   Note over CH: Side and levels are not shown, so the card leaks nothing
 ```
 
@@ -351,7 +404,7 @@ sequenceDiagram
   MA->>MA: decrypt the signal on the device
   BOT-->>S: unlock DM
   Note over C: Keeper resolves and settles
-  BOT-->>S: ✅ WIN or ❌ LOSS + refund result card
+  BOT-->>S: WIN or LOSS + refund result card
   BOT-->>CH: result card in the channel
 ```
 
@@ -592,9 +645,9 @@ CI (`.github/workflows/ci.yml`) runs install → typecheck → test → forge te
 
 | Phase | When | Milestones |
 |---|---|---|
-| 🚀 **Launch** | Q1 2027 | Mainnet deployment on HashKey Chain (177) with Blockscout verification; live APRO and Supra oracles; HSP gateway payments once merchant credentials are issued; paid hosting and multisig admin |
-| 📈 **Scale** | Q2–Q3 2027 | Onboard the first paid providers from Indian Telegram signal groups; KYC-verified badges from HSP attestations; publish provider track records on ERC-8004; aggregator agents live with automatic revenue splits |
-| 🌐 **Ecosystem** | 2028 | Open MCP access for third-party AI agents; execution agents trading on HSKSwap; more markets and oracle pairs; HashKey AgentKit wallets |
+| **Launch** | Q1 2027 | Mainnet deployment on HashKey Chain (177) with Blockscout verification; live APRO and Supra oracles; HSP gateway payments once merchant credentials are issued; paid hosting and multisig admin |
+| **Scale** | Q2–Q3 2027 | Onboard the first paid providers from Indian Telegram signal groups; KYC-verified badges from HSP attestations; publish provider track records on ERC-8004; aggregator agents live with automatic revenue splits |
+| **Ecosystem** | 2028 | Open MCP access for third-party AI agents; execution agents trading on HSKSwap; more markets and oracle pairs; HashKey AgentKit wallets |
 
 **Later ideas:** threshold or TEE encryption for signal keys, pay-if-right for *any* verifiable prediction (prediction markets, funding rates, sports), an agent-to-agent alpha exchange, and reputation-backed credit for agents.
 
