@@ -97,15 +97,28 @@ export function harness(opts: { admin?: boolean } = {}) {
         channel_post: { message_id: messageId, date: Math.floor(Date.now() / 1000), chat: { id: chatId, type: "channel", title }, text },
       } as any),
     /** The bot's own status in a channel changed (added as admin, demoted, removed). */
-    myChatMember: (chatId: number, fromId: number, from: string, to: string, canPost = true) =>
+    myChatMember: (chatId: number, fromId: number, from: string, to: string, canPost: boolean | null = true, type = "channel") =>
       bot.handleUpdate({
         update_id: updateId++,
         my_chat_member: {
-          chat: { id: chatId, type: "channel", title: "Alpha Calls" },
+          chat: { id: chatId, type, title: "Alpha Calls" },
           from: user(fromId),
           date: Math.floor(Date.now() / 1000),
           old_chat_member: { status: from, user: BOT_INFO, ...(from === "administrator" ? { can_post_messages: true } : {}) },
-          new_chat_member: { status: to, user: BOT_INFO, ...(to === "administrator" ? { can_post_messages: canPost } : {}) },
+          new_chat_member: { status: to, user: BOT_INFO, ...(to === "administrator" && canPost != null ? { can_post_messages: canPost } : {}) },
+        },
+      } as any),
+    /** A message in a group, from a member (or posted as the group itself). */
+    groupMessage: (chatId: number, fromId: number, messageId: number, text: string, asGroup = false) =>
+      bot.handleUpdate({
+        update_id: updateId++,
+        message: {
+          message_id: messageId,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: chatId, type: "supergroup", title: "Alpha Group" },
+          from: asGroup ? { id: 1087968824, is_bot: true, first_name: "Group", username: "GroupAnonymousBot" } : user(fromId),
+          ...(asGroup ? { sender_chat: { id: chatId, type: "supergroup", title: "Alpha Group" } } : {}),
+          text,
         },
       } as any),
     editedChannelPost: (chatId: number, messageId: number, text: string) =>

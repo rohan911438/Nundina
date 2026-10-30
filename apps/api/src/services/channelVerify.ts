@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { providers, users } from "../db/schema.js";
 import { ApiError, badRequest, conflict, notFound } from "../lib/errors.js";
 import { lookalikeOf } from "./lookalike.js";
+import { providerOfUser } from "./providerOfUser.js";
 
 export interface ChannelFacts {
   channelId: number;
@@ -18,7 +19,7 @@ export interface ChannelFacts {
 export async function providerOfTelegram(telegramId: number) {
   const u = await db().query.users.findFirst({ where: eq(users.telegramId, telegramId) });
   if (!u) return null;
-  return (await db().query.providers.findFirst({ where: eq(providers.userId, u.id) })) ?? null;
+  return providerOfUser(u.id, u.wallet);
 }
 
 /**

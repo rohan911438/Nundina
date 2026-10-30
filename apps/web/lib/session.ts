@@ -173,11 +173,13 @@ export const telegramApi = {
   startLink: () => authed<{ token: string; expiresInS: number }>("/me/telegram/link", { body: {} }),
   /** Finishes a link the bot started with /connect. */
   redeem: (token: string) => authed<{ telegramId: number; telegramUsername: string | null }>("/me/telegram/redeem", { body: { token } }),
+  /** Unlinks the Telegram account and un-verifies the channel verified through it. */
+  disconnect: () => authed<{ ok: true; telegram: boolean; channel: boolean }>("/me/telegram/disconnect", { body: {} }),
 };
 
 export const purchasesApi = {
   create: (signalId: string, token: "USDT" | "USDC_E") =>
-    authed<{ purchaseId: string; status: string; intent: Intent }>("/purchases", { body: { signalId, token } }),
+    authed<{ purchaseId: string; status: string; intent: Intent | null }>("/purchases", { body: { signalId, token } }),
   submit: (id: string, mandateSig: string, txHash: string) =>
     authed<PurchaseView>(`/purchases/${id}/submit`, { body: { mandateSig, txHash }, headers: { "idempotency-key": `${id}:${txHash}` } }),
   authorize: (id: string, authorization: Record<string, string>, signature: string) =>
@@ -189,6 +191,8 @@ export const purchasesApi = {
 };
 
 export const draftsApi = {
+  /** A blank draft for a signal typed in the app instead of posted in the channel. */
+  create: () => authed<{ id: number; status: string }>("/drafts", { body: { rawText: "Posted from the provider dashboard", parser: "manual" } }),
   get: (id: string) => authed<DraftView>(`/drafts/${id}`),
   prepare: (id: string, signal: Record<string, unknown>) =>
     authed<{ salt: string; commitHash: string; typedData: { domain: Record<string, unknown>; types: Record<string, { name: string; type: string }[]>; primaryType: string; message: Record<string, string> } }>(

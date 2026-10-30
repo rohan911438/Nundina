@@ -133,6 +133,13 @@ function ConfirmForm({ draft, onCommitted }: { draft: DraftView; onCommitted?: (
       setDone(r);
       onCommitted?.(r);
     } catch (e) {
+      // an earlier attempt already locked it (its reply was lost): show it as done
+      const lockedId = e instanceof ApiError && e.code === "already_committed" ? (e.details as { signalId?: string } | undefined)?.signalId : undefined;
+      if (lockedId) {
+        setDone({ signalId: lockedId });
+        onCommitted?.({ signalId: lockedId });
+        return;
+      }
       setError(e instanceof ApiError ? e.message : walletErrorMessage(e));
     } finally {
       setBusy(null);

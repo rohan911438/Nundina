@@ -1,7 +1,7 @@
 import { Composer, InlineKeyboard } from "grammy";
 import { ApiError } from "../api.js";
 import { buyCard, deepLink, hoursLeft, miniApp, usd, webUrl } from "../cards.js";
-import { ONBOARDING_PATH, addToChannelUrl } from "../channels.js";
+import { ONBOARDING_PATH, addToChannelUrl, addToGroupUrl, finishPending } from "../channels.js";
 import type { Ctx, Deps } from "../context.js";
 import { en } from "../i18n/en.js";
 
@@ -30,7 +30,8 @@ export function commandHandlers(deps: Deps) {
   });
 
   const onboarding = () => webUrl(deps.links, ONBOARDING_PATH);
-  const addKb = (ctx: Ctx) => new InlineKeyboard().url(en.buttons.addToChannel, addToChannelUrl(ctx.me.username));
+  const addKb = (ctx: Ctx) =>
+    new InlineKeyboard().url(en.buttons.addToChannel, addToChannelUrl(ctx.me.username)).row().url(en.buttons.addToGroup, addToGroupUrl(ctx.me.username));
 
   async function linkChannel(ctx: Ctx & { from: { id: number; username?: string } }) {
     const u = await deps.api.user(ctx.from.id, ctx.from.username);
@@ -41,6 +42,8 @@ export function commandHandlers(deps: Deps) {
       const p = await deps.api.providerForChannel(u.provider.channelId);
       return ctx.reply(en.linkAlready(p?.channelTitle ?? "your channel"), html);
     }
+    // the bot was added before this account was linked: finish that one now
+    if (await finishPending(deps, ctx.api, ctx.from.id)) return;
     const { code } = await deps.api.linkCode(u.userId);
     return ctx.reply(en.linkSteps(code, ctx.me.username), { ...html, reply_markup: addKb(ctx) });
   }
@@ -50,7 +53,9 @@ export function commandHandlers(deps: Deps) {
     try {
       const r = await deps.api.redeemAccountLink(token, ctx.from.id, ctx.from.username);
       ctx.session.userId = r.userId;
-      return ctx.reply(en.acctLinked(r.wallet), html);
+      await ctx.reply(en.acctLinked(r.wallet), html);
+      await finishPending(deps, ctx.api, ctx.from.id);
+      return;
     } catch (e) {
       if (e instanceof ApiError && e.status < 500) return ctx.reply(en.acctBadLink(e.message), html);
       throw e;

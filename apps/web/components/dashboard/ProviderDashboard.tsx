@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, Loader2, PenLine } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, PenLine, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ApiSignal } from "@nundina/shared";
 import { providerRegistryAbi } from "@nundina/shared/abis";
@@ -22,7 +23,7 @@ import { cn } from "@/lib/cn";
 import { config } from "@/lib/config";
 import { addr } from "@/lib/contracts";
 import { ago, explorer, r as fmtR, short, usd } from "@/lib/format";
-import { me, providerApi, type MyProvider } from "@/lib/session";
+import { draftsApi, me, providerApi, telegramApi, type MyProvider } from "@/lib/session";
 import { signalState } from "@/lib/signal-state";
 import { useWallet, walletErrorMessage } from "@/lib/wallet/useWallet";
 
@@ -58,12 +59,39 @@ function Inner() {
   return <Dash d={q.data} />;
 }
 
+/** Opens the confirm form on a blank draft: the same lock flow as a channel post. */
+function NewSignal() {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const d = await draftsApi.create();
+      router.push(`/tg/confirm/${d.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Couldn't start a signal");
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col items-end">
+      <Button variant="accent" size="sm" onClick={() => void start()} disabled={busy} data-testid="new-signal">
+        {busy ? <Loader2 aria-hidden className="animate-spin" /> : <Plus aria-hidden />}
+        New signal
+      </Button>
+      {error ? <span role="alert" className="mt-1 text-xs text-loss">{error}</span> : null}
+    </div>
+  );
+}
+
 function Dash({ d }: { d: MyProvider }) {
   const w = useWallet();
   const [tab, setTab] = useState<Tab>("live");
   const groups: Record<Tab, ApiSignal[]> = { live: [], reveal: [], settled: [] };
   for (const s of d.recentSignals) groups[tabOf(s)].push(s);
-  const setupDone = d.provider.linked && Number(d.bond.totalUsd) > 0;
+  const setupDone = d.provider.linked; // bond is optional on testnet
   const buyers = groups.live.reduce((n, s) => n + s.purchaseCount, 0);
   const freeBond = Number(d.bond.totalUsd) - Number(d.bond.lockedUsd);
 
@@ -74,9 +102,12 @@ function Dash({ d }: { d: MyProvider }) {
           <p className="text-sm text-muted">Provider</p>
           <h1 className="text-3xl font-semibold tracking-tight">@{d.provider.handle}</h1>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/p/${d.provider.handle}`}>Public profile</Link>
-        </Button>
+        <div className="flex gap-2">
+          <NewSignal />
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/p/${d.provider.handle}`}>Public profile</Link>
+          </Button>
+        </div>
       </header>
 
       <Stats
@@ -219,6 +250,25 @@ function Settings({ d }: { d: MyProvider }) {
   const [payIfWorks, setPayIfWorks] = useState(d.settings.payIfWorks);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const session = useQuery({ queryKey: ["session"], queryFn: me.session, retry: false });
+  const tgLinked = Boolean(session.data?.telegram) || d.provider.linked;
+  const [confirmTg, setConfirmTg] = useState(false);
+
+  async function disconnectTelegram() {
+    if (!confirmTg) return setConfirmTg(true);
+    setBusy("telegram");
+    setMsg(null);
+    try {
+      await telegramApi.disconnect();
+      await Promise.all([qc.invalidateQueries({ queryKey: ["session"] }), qc.invalidateQueries({ queryKey: ["me-provider"] })]);
+      setMsg({ ok: true, text: "Telegram disconnected. Connect it again from Finish setup." });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof ApiError ? e.message : String(e) });
+    } finally {
+      setBusy(null);
+      setConfirmTg(false);
+    }
+  }
 
   async function save() {
     setBusy("save");
@@ -277,6 +327,12 @@ function Settings({ d }: { d: MyProvider }) {
           <Button variant="outline" size="sm" onClick={() => void leavePractice()} disabled={Boolean(busy)}>
             {busy === "practice" ? <Loader2 aria-hidden className="animate-spin" /> : null}
             Leave practice and start charging
+          </Button>
+        ) : null}
+        {tgLinked ? (
+          <Button variant="outline" size="sm" onClick={() => void disconnectTelegram()} disabled={Boolean(busy)} data-testid="disconnect-telegram">
+            {busy === "telegram" ? <Loader2 aria-hidden className="animate-spin" /> : null}
+            {confirmTg ? "Tap again: unlink Telegram and the channel" : "Disconnect Telegram"}
           </Button>
         ) : null}
       </div>

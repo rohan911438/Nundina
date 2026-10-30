@@ -57,7 +57,7 @@ describe.skipIf(!canRunChain)("commit relay (anvil)", () => {
     expect(body.entry).toBe(signal.entry);
     expect("salt" in body).toBe(false);
 
-    const txs = await db().select().from(relayedTxs).where(eq(relayedTxs.idempotencyKey, `commit:draft:${draftId}`));
+    const txs = await db().select().from(relayedTxs).where(eq(relayedTxs.idempotencyKey, `commit:${prep.commitHash.toLowerCase()}`));
     expect(txs).toHaveLength(1);
     const draft = await db().query.signalDrafts.findFirst({ where: eq(signalDrafts.id, draftId) });
     expect(draft?.status).toBe("committed");

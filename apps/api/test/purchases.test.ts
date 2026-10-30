@@ -13,7 +13,7 @@ import {
 } from "@nundina/shared";
 import { erc20Abi, performanceEscrowAbi } from "@nundina/shared/abis";
 import { closeDb, db } from "../src/db/client.js";
-import { purchases, relayedTxs, users } from "../src/db/schema.js";
+import { purchases, relayedTxs, signalDrafts, signals, users } from "../src/db/schema.js";
 import { resetEnv } from "../src/env.js";
 import { stopQueue } from "../src/jobs/queue.js";
 import { processVerify } from "../src/jobs/hspRetry.js";
@@ -205,6 +205,52 @@ describe.skipIf(!canRunChain)("purchases (DirectRail on anvil)", () => {
     expect(wrong.body.error.details).toEqual({ token: "USDT" });
     const right = await postJson("/purchases", { signalId: sid.toString(), token: "USDT" }, second.headers);
     expect(right.status).toBe(201);
+  });
+
+  it("a free signal unlocks in one call: no payment, no bond, key delivered", async () => {
+    const own = await db().query.users.findFirst({ where: eq(users.wallet, provider.address.toLowerCase()) });
+    const { signalId: freeId } = await chain.commitViaApi(provider, own!.id, 0n);
+    const b = await newBuyer("0");
+    const r = await postJson("/purchases", { signalId: freeId.toString() }, b.headers);
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ status: "KEY_SENT", intent: null });
+
+    const k = await getJson(`/purchases/${r.body.purchaseId}/key`, b.headers);
+    const body = decryptSignalBody<{ entry: string }>(unwrapKey(b.enc.privateKey, k.body.wrappedKey), k.body.ciphertext, k.body.iv);
+    expect(body.entry).toBe("8150000000000");
+    // asking again returns the same claim instead of an error
+    const again = await postJson("/purchases", { signalId: freeId.toString() }, b.headers);
+    expect(again.body.purchaseId).toBe(r.body.purchaseId);
+  });
+
+  it("a confirm cut off after the commit was mined is finished by the retry, key kept", async () => {
+    const own = await db().query.users.findFirst({ where: eq(users.wallet, provider.address.toLowerCase()) });
+    const asUser = { ...INTERNAL, "x-act-as-user": String(own!.id) };
+    const { signalId: id, draftId, signal } = await chain.commitViaApi(provider, own!.id, 0n);
+    // what production saw: mined on-chain, then the API errored before saving anything
+    await db().update(signals).set({ ciphertext: null, aesKeyEnc: null, saltEnc: null }).where(eq(signals.id, id));
+    await db().update(signalDrafts).set({ status: "prepared", signalId: null }).where(eq(signalDrafts.id, draftId));
+
+    const retry = await postJson(`/drafts/${draftId}/prepare`, signal, asUser);
+    expect(retry.status).toBe(409);
+    expect(retry.body.error).toMatchObject({ code: "already_committed", details: { signalId: id.toString() } });
+    const row = await db().query.signals.findFirst({ where: eq(signals.id, id) });
+    expect(row?.aesKeyEnc).toBeTruthy();
+
+    const b = await newBuyer("0");
+    const r = await postJson("/purchases", { signalId: id.toString() }, b.headers);
+    expect(r.body.status).toBe("KEY_SENT");
+  });
+
+  it("a signal without key material can't be bought or claimed, and leaves no claim behind", async () => {
+    const own = await db().query.users.findFirst({ where: eq(users.wallet, provider.address.toLowerCase()) });
+    const { signalId: id } = await chain.commitViaApi(provider, own!.id, 0n);
+    await db().update(signals).set({ aesKeyEnc: null }).where(eq(signals.id, id));
+    const b = await newBuyer("0");
+    const r = await postJson("/purchases", { signalId: id.toString() }, b.headers);
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe("no_key_material");
+    expect(await db().select().from(purchases).where(eq(purchases.signalId, id))).toHaveLength(0);
   });
 
   it("never logs plaintext, keys or salts", async () => {

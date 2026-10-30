@@ -60,7 +60,7 @@ export function draftCard(l: Links, draftId: number, channel: string, s: ParsedS
 export function lockedCard(l: Links, s: PublicSignal, now = Date.now()): Card {
   return {
     text: en.locked({ market: s.market, hours: hoursLeft(s.validUntil, now), priceUsd: usd(s.priceUsd), free: Number(s.priceUsd) === 0 }),
-    keyboard: new InlineKeyboard().url(en.buttons.buy, deepLink(l, `buy_${s.id}`)).url(en.buttons.proof, webUrl(l, `/s/${s.id}`)),
+    keyboard: new InlineKeyboard().url(Number(s.priceUsd) === 0 ? en.buttons.getFree : en.buttons.buy, deepLink(l, `buy_${s.id}`)).url(en.buttons.proof, webUrl(l, `/s/${s.id}`)),
   };
 }
 
@@ -99,7 +99,7 @@ export function unlockedCard(l: Links, s: PublicSignal): Card {
 /** Bot answer to `start=buy_<id>` / `/buy <id>`: opens the Mini App purchase screen. */
 export function buyCard(l: Links, s: PublicSignal, now = Date.now()): Card {
   return {
-    text: en.buyIntro({ market: s.market, priceUsd: usd(s.priceUsd), provider: s.provider?.displayName ?? "unknown", hours: hoursLeft(s.validUntil, now) }),
-    keyboard: new InlineKeyboard().webApp(en.buttons.buy, miniApp(l, `/buy/${s.id}`)).url(en.buttons.proof, webUrl(l, `/s/${s.id}`)),
+    text: en.buyIntro({ market: s.market, priceUsd: usd(s.priceUsd), provider: s.provider?.displayName ?? "unknown", hours: hoursLeft(s.validUntil, now), free: Number(s.priceUsd) === 0 }),
+    keyboard: new InlineKeyboard().webApp(Number(s.priceUsd) === 0 ? en.buttons.getFree : en.buttons.buy, miniApp(l, `/buy/${s.id}`)).url(en.buttons.proof, webUrl(l, `/s/${s.id}`)),
   };
 }

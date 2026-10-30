@@ -68,6 +68,8 @@ export async function buy(
   opts: { guard: SpendGuard; beforePay?: () => Promise<string | null>; timeoutMs?: number },
 ): Promise<{ purchaseId: string; status: string; amount: bigint; txHash?: Hex; blocked?: string }> {
   const p = await api.createPurchase(signalId);
+  // free (practice) signal: the API wrapped the key already, nothing to pay
+  if (!p.intent) return { purchaseId: p.purchaseId, status: p.status, amount: 0n };
   // TODO(hsp-pay-mandate): the HashKey Merchant gateway only offers a browser checkout until its
   // agent Payment Mandate endpoint is documented (NEEDS-FROM-USER), so agents skip instead of paying.
   if (!p.intent.mandateTypedData) return { purchaseId: p.purchaseId, status: "PENDING", amount: 0n, blocked: `HSP gateway checkout needs a browser: ${p.intent.checkout?.paymentUrl ?? "no payment_url"}` };

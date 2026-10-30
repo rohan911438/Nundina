@@ -8,6 +8,7 @@ import { userIdForTelegram } from "../auth/internal.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { publicProvider, publicSignal } from "../lib/serialize.js";
 import { linkedChannels, providerOfTelegram, unverifyChannel, verifyChannel } from "../services/channelVerify.js";
+import { providerOfUser } from "../services/providerOfUser.js";
 import { redeemInBot, startLinkFromBot } from "../services/telegramAccount.js";
 import { ChannelFactsBody } from "./providers.js";
 
@@ -38,7 +39,7 @@ export const telegramRoutes = new Hono<AppEnv>()
     if (!b.success) throw badRequest("bad_body", "telegramId required");
     const userId = await userIdForTelegram(b.data.telegramId, b.data.username);
     const u = await db().query.users.findFirst({ where: eq(users.id, userId) });
-    const p = await db().query.providers.findFirst({ where: eq(providers.userId, userId) });
+    const p = await providerOfUser(userId, u?.wallet);
     return c.json({ userId, wallet: u?.wallet ?? null, hasEncryptionKey: Boolean(u?.pubkey), provider: p ? { handle: p.handle, channelId: p.channelId } : null });
   })
   /** `/start acct_<token>`: the web asked to link this Telegram account to its wallet. */
@@ -110,11 +111,14 @@ export const telegramRoutes = new Hono<AppEnv>()
       .innerJoin(users, eq(users.id, purchases.buyerUserId))
       .where(and(eq(purchases.signalId, id), inArray(purchases.status, PAID), isNotNull(users.telegramId)));
     const st = await db().query.settlements.findFirst({ where: eq(settlements.signalId, id) });
+    // a signal posted from the web has no channel post: its cards go to the verified channel
+    const owner = s.tgChatId ? null : await db().query.providers.findFirst({ where: eq(providers.id, s.providerId) });
     return c.json({
       signal: { ...publicSignal(s, provider), pricePerSub: s.price },
       provider,
       post: s.tgChatId && s.tgMessageId ? { chatId: s.tgChatId, messageId: s.tgMessageId } : null,
       cardMessageId: s.tgCardMessageId,
+      channelId: s.tgChatId ?? (owner?.channelVerifiedAt ? owner.channelId : null),
       buyers,
       settlement: st ? { outcome: st.outcome, payout: st.payout, refundsTotal: st.refundsTotal, slashTotal: st.slashTotal, settleTx: st.settleTx } : null,
     });

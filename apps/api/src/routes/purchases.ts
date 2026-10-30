@@ -19,6 +19,7 @@ import { syncGatewayPurchase } from "../payments/gatewaySync.js";
 import { enqueue, JOBS } from "../jobs/queue.js";
 import { revealSignal } from "../jobs/reveal.js";
 
+const NO_KEY = "This signal can't be unlocked: its key was not saved when it was locked. Pick another signal; the provider can post it again.";
 const OPEN_STATUSES = ["COMMITTED", "REVEALED"];
 const PAID_STATUSES = ["CREDITED", "KEY_SENT", "SETTLED_WIN", "REFUNDED"];
 /** Statuses after which a buyer may start a fresh attempt for the same signal. */
@@ -137,8 +138,9 @@ export const purchaseRoutes = new Hono<AppEnv>()
     if (!OPEN_STATUSES.includes(s.status) || s.outcome) throw conflict("signal_closed", "Signal is no longer open");
     if (s.validUntil <= new Date()) throw conflict("signal_expired", "Signal has expired");
     if (s.source !== "chain") throw conflict("not_on_chain", "Demo signals cannot be bought");
+    // without key material nobody could ever read it: refuse before anyone pays or claims
+    if (!s.aesKeyEnc) throw conflict("no_key_material", NO_KEY);
     const price = BigInt(s.price);
-    if (price === 0n) throw badRequest("free_signal", "Practice signals are free; no purchase needed");
 
     const provider = await db().query.providers.findFirst({ where: eq(providers.id, s.providerId) });
     if (!provider) throw notFound("Provider");
@@ -149,13 +151,43 @@ export const purchaseRoutes = new Hono<AppEnv>()
     const existing = await db().query.purchases.findFirst({
       where: and(eq(purchases.signalId, signalId), eq(purchases.buyerAddress, payer.toLowerCase())),
     });
-    if (existing && !RETRYABLE_STATUSES.includes(existing.status) && existing.status !== "PENDING") {
+    if (price > 0n && existing && !RETRYABLE_STATUSES.includes(existing.status) && existing.status !== "PENDING") {
       throw conflict("already_bought", "You already bought this signal");
     }
 
     const buyer = await db().query.users.findFirst({ where: eq(users.id, a.userId!) });
     const agent = a.agentId ? await db().query.agents.findFirst({ where: eq(agents.id, a.agentId) }) : undefined;
     if (!(agent?.encPubkey ?? buyer?.pubkey)) throw conflict("no_encryption_key", "Register an encryption key first (POST /me/encryption-key)");
+
+    // Free (practice) signal: nothing to pay or escrow, so no bond is locked. The key is wrapped to
+    // the buyer straight away; the claim still counts as a subscriber and gets the result DM.
+    if (price === 0n) {
+      if (existing && PAID_STATUSES.includes(existing.status)) return c.json({ purchaseId: existing.id, status: existing.status, intent: null });
+      const free = {
+        signalId,
+        buyerUserId: a.userId,
+        agentId: a.agentId ?? null,
+        buyerAddress: payer.toLowerCase(),
+        amount: "0",
+        token: paymentToken(env().CHAIN_ID).toLowerCase(),
+        rail: "free",
+        status: "CREDITED",
+        outcomeClass: "ACCEPT",
+        updatedAt: new Date(),
+      };
+      // claim and key delivery together: a failed wrap leaves no half-made claim behind
+      const id = await db().transaction(async (tx) => {
+        const [p] = existing
+          ? await tx.update(purchases).set(free).where(eq(purchases.id, existing.id)).returning()
+          : await tx.insert(purchases).values(free).returning();
+        await wrapKeyFor(p!.id, "web", tx);
+        await tx.update(purchases).set({ status: "KEY_SENT" }).where(eq(purchases.id, p!.id));
+        return p!.id;
+      });
+      await enqueue(JOBS.notifyKeyDelivered, { purchaseId: id, signalId: signalId.toString() }, `key:${id}`);
+      const p = { id };
+      return c.json({ purchaseId: p!.id, status: "KEY_SENT", intent: null }, 201);
+    }
 
     // Capacity: every credited subscriber locks `price` of the provider's bond.
     const paid = await db()
@@ -281,8 +313,9 @@ export const purchaseRoutes = new Hono<AppEnv>()
   .get("/purchases/:id/key", requireUser, async (c) => {
     const p = await ownPurchase(c.req.param("id"), getAuth(c));
     const d = await db().query.keyDeliveries.findFirst({ where: eq(keyDeliveries.purchaseId, p.id) });
-    if (!d) throw conflict("key_not_ready", `Key not delivered yet (status ${p.status})`);
     const s = await db().query.signals.findFirst({ where: eq(signals.id, p.signalId) });
+    if (!d && !s?.aesKeyEnc) throw conflict("no_key_material", NO_KEY);
+    if (!d) throw conflict("key_not_ready", `Key not delivered yet (status ${p.status})`);
     if (!s?.ciphertext) throw notFound("Ciphertext");
     return c.json({ purchaseId: p.id, signalId: p.signalId.toString(), wrappedKey: d.wrappedKey, ...splitCiphertext(s.ciphertext) });
   })
