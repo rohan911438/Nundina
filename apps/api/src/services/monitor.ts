@@ -1,7 +1,7 @@
-import { and, count, gte, inArray, lt, notInArray } from "drizzle-orm";
+import { and, count, gte, inArray, lt, notExists, notInArray, eq } from "drizzle-orm";
 import { formatEther, getAddress } from "viem";
 import { db } from "../db/client.js";
-import { purchases, signals } from "../db/schema.js";
+import { purchases, settlements, signals } from "../db/schema.js";
 import { env } from "../env.js";
 import { log } from "../lib/log.js";
 import { publicClient } from "../chain/clients.js";
@@ -64,7 +64,14 @@ export async function checks(now = new Date()): Promise<Check[]> {
   const [late] = await db()
     .select({ n: count() })
     .from(signals)
-    .where(and(lt(signals.validUntil, new Date(now.getTime() - SETTLE_GRACE_MS)), notInArray(signals.status, DONE)));
+    .where(
+      and(
+        lt(signals.validUntil, new Date(now.getTime() - SETTLE_GRACE_MS)),
+        notInArray(signals.status, DONE),
+        // an unrevealed loss keeps its status after settlement; the settlements row is what says it is done
+        notExists(db().select().from(settlements).where(eq(settlements.signalId, signals.id))),
+      ),
+    );
   out.push({ name: "settlements", ok: late!.n === 0, detail: `${late!.n} signal(s) expired > 2 h ago and not settled` });
 
   const [bad] = await db()
