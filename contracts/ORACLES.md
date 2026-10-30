@@ -13,7 +13,7 @@ Checked against HashKey mainnet (chain 177) on 2026-10-26 with `cast` and Foundr
 **Consequences in code**
 - `AproPushAdapter.maxStaleness` is per feed and set to **26 h** at deploy (not 2 h).
 - `priceAt(ts)` uses the latest round when it was published at or before `ts`; otherwise it tries the hint and reverts `NoHistory`.
-- `FallbackPriceAdapter(APRO → Supra push)` is the resolver's push adapter, so the protocol works before APRO allowlists our adapter. **Action:** ask APRO to allowlist the deployed `AproPushAdapter` address (see `NEEDS-FROM-USER.md`).
+- `FallbackPriceAdapter(APRO → Supra push)` is the resolver's push adapter, so the protocol works before APRO allowlists our adapter. **Action:** ask APRO to allowlist the deployed `AproPushAdapter` address.
 
 ## Supra push storage (`0x58e1…9d57`, SupraSValueFeed)
 | Fact | Status |

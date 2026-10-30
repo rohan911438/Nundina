@@ -8,7 +8,7 @@ import type { AgentWallet } from "./wallet.js";
  *
  * Paths, in order of preference:
  *  1. `@hsp/mcp` hsp_quote → hsp_pay with SpendGuard (per-tx cap, daily cap, recipient = escrow).
- *     TODO(confirm): package not published yet; see NEEDS-FROM-USER.
+ *     TODO(confirm): package not published yet.
  *  2. `@hsp/sdk` HSPClient.pay. TODO(confirm): same.
  *  3. Direct (this): the evm-transfer flow the API's DirectRail and HspRail both verify.
  */
@@ -71,7 +71,7 @@ export async function buy(
   // free (practice) signal: the API wrapped the key already, nothing to pay
   if (!p.intent) return { purchaseId: p.purchaseId, status: p.status, amount: 0n };
   // TODO(hsp-pay-mandate): the HashKey Merchant gateway only offers a browser checkout until its
-  // agent Payment Mandate endpoint is documented (NEEDS-FROM-USER), so agents skip instead of paying.
+  // agent Payment Mandate endpoint is documented, so agents skip instead of paying.
   if (!p.intent.mandateTypedData) return { purchaseId: p.purchaseId, status: "PENDING", amount: 0n, blocked: `HSP gateway checkout needs a browser: ${p.intent.checkout?.paymentUrl ?? "no payment_url"}` };
   const amount = BigInt(p.intent.mandateTypedData.message.amount);
   const blocked = guard(opts.guard, p.intent.payee, amount) ?? (await opts.beforePay?.()) ?? null;

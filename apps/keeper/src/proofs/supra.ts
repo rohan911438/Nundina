@@ -2,7 +2,7 @@
  * Supra pull-oracle proofs for HashKey (verified on-chain by SupraPullAdapter → verifyOracleProofV2).
  *
  * TODO(confirm): the REST shape below is assumed from Supra's public pull-client examples and must
- * be checked against the real service (contracts/ORACLES.md, NEEDS-FROM-USER item 3):
+ * be checked against the real service (contracts/ORACLES.md):
  *   POST {SUPRA_PROOF_API_URL}/get_proof  { pair_indexes: [0], chain_type: "evm" }
  *   → { proof_bytes: "0x…" }   (also accepted: { proof: "0x…" })
  * Proofs are for the latest price only; there is no historical proof, which is why the keeper

@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { Reveal } from "@/components/motion/Reveal";
 import { SectionHead } from "./SectionHead";
 
-/** The 7 trust rules (README, Idea/01 §1.5). */
+/** The 7 trust rules (docs/TRUST-MODEL.md). */
 export const TRUST_RULES = [
   { Icon: Undo2, title: "Refund if wrong", body: "Payment sits in escrow and comes back automatically when the call fails." },
   {

@@ -39,7 +39,7 @@ const CART_TTL_MS = 2 * 60 * 60_000;
  * the credit signer attests the escrow credit. Gateway status alone never credits anything.
  *
  * TODO(hsp-pay-mandate): agents can't use the browser checkout. The gateway's
- * `/api/v1/payment/pay-mandate` (agent-built Payment Mandate) is not documented yet (NEEDS-FROM-USER.md).
+ * `/api/v1/payment/pay-mandate` (agent-built Payment Mandate) is not documented yet.
  */
 export class HspGatewayRail implements PaymentRail {
   readonly name = "hsp" as const;

@@ -24,7 +24,7 @@ import {ICreditVerifier, IRevenueRouter} from "../src/interfaces/IPerformanceEsc
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {MockERC3009} from "../test/mocks/MockERC3009.sol";
 
-/// @notice Deploys the full Nundina system in the order of Architecture/04 §4.5.
+/// @notice Deploys the full Nundina system in dependency order.
 /// @dev forge script script/Deploy.s.sol --rpc-url <rpc> --broadcast [--verify ...]
 ///      Mainnet requires CONFIRM_MAINNET=yes and a deployer balance >= 1.5x the gas estimate.
 contract Deploy is Config {

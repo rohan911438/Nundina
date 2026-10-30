@@ -41,7 +41,7 @@ const EnvSchema = z.object({
   HSP_CHAIN: optional,
   HSP_ADAPTER_ADDRESS: optional,
   HSP_FACILITATOR_URL: optional,
-  /** HashKey Merchant gateway (HSP): docs/HSP-ONBOARDING.md */
+  /** HashKey Merchant gateway (HSP): hashkey-merchant.github.io */
   HSP_MERCHANT_BASE_URL: z.string().default("https://merchant-qa.hashkeymerchant.com"),
   HSP_MERCHANT_PRIVATE_KEY_PATH: z.string().default("secrets/hsp_merchant_private_key.pem"),
   HSP_MERCHANT_APP_KEY: optional,

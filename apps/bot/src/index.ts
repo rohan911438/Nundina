@@ -21,7 +21,7 @@ const WEBHOOK_PATH = "/telegram/webhook";
 async function main() {
   const e = env();
   if (!e.TELEGRAM_BOT_TOKEN) {
-    console.error("TELEGRAM_BOT_TOKEN is not set (see NEEDS-FROM-USER.md). The bot cannot start.");
+    console.error("TELEGRAM_BOT_TOKEN is not set (see .env.example). The bot cannot start.");
     process.exit(1);
   }
   if (e.BOT_WEBHOOK_URL && !e.TELEGRAM_WEBHOOK_SECRET) throw new Error("TELEGRAM_WEBHOOK_SECRET is required in webhook mode");

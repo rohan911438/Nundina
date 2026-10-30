@@ -21,3 +21,16 @@ secrets/
 .vercel
 .env*
 !.env.example
+
+# internal planning and working notes (kept locally, not part of the submission)
+Idea/
+Memory/
+Prompts/
+Architecture/
+NEEDS-FROM-USER.md
+TRACTION.md
+Pitch.md
+docs/PITCH.md
+docs/HSP-ONBOARDING.md
+apps/web/QA.md
+.claude/

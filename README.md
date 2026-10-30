@@ -569,7 +569,7 @@ The browser calls the API through the same-origin `/backend/*` proxy. Secrets li
 | Hosting | Vercel (web), Render (API, bot, keeper, indexer, Postgres) |
 | CI | GitHub Actions: typecheck, tests, forge, `pnpm audit` |
 
-Why each choice: [`Idea/06-tech-stack.md`](Idea/06-tech-stack.md)
+Why each choice: [`docs/TECH-STACK.md`](docs/TECH-STACK.md)
 
 ## Repository structure
 
@@ -586,9 +586,7 @@ Nundina/
 ├── apps/mcp/         MCP server for external agents (x402 / credits, delegated buys)
 ├── agents/           core runtime + momentum, funding, sentiment, execution, aggregator agents
 ├── scripts/          contract helpers, address sync, Render supervisor
-├── docs/             deploy, demo runbook, audit, HSP onboarding, pitch outline
-├── Idea/ Architecture/ Memory/ Prompts/   product docs, design, build log
-└── TRACTION.md       providers, signals, purchases, refunds, volume
+└── docs/             architecture, trust model, market, decisions, deploy, demo, audit
 ```
 
 ## Run it locally
@@ -631,7 +629,7 @@ CI (`.github/workflows/ci.yml`) runs install → typecheck → test → forge te
 
 ### Done (hackathon build)
 
-- [x] Research, product design and architecture ([`Idea/`](Idea/README.md), [`Architecture/`](Architecture/README.md))
+- [x] Research, product design and architecture ([`docs/`](docs/README.md))
 - [x] Core contracts: commit-reveal, escrow, oracle settlement, bonds, timelocked admin, ERC-8004
 - [x] Payments: direct HSP-mandate rail live; HSP merchant gateway rail built and tested
 - [x] Telegram bot with verified channels and groups, plus the Mini App
@@ -651,27 +649,27 @@ CI (`.github/workflows/ci.yml`) runs install → typecheck → test → forge te
 
 **Later ideas:** threshold or TEE encryption for signal keys, pay-if-right for *any* verifiable prediction (prediction markets, funding rates, sports), an agent-to-agent alpha exchange, and reputation-backed credit for agents.
 
-**Business model:** a platform fee on each paid signal, a protocol share of slashed bonds, and paid provider tiers for analytics and verified visibility.
+**Business model:** a 10% fee on winning payments only, a paid data API for agents, and paid provider tiers for analytics and verified visibility.
 
 ---
 
 ## Documentation
 
-| Doc | |
+| Doc | What it covers |
 |---|---|
-| [Idea and trust design](Idea/01-idea-and-trust.md) | How it works and why traders can trust it |
-| [Why this](Idea/02-why-this.md) | Problem, demand, why now, Track 2 fit |
-| [Competitors](Idea/03-competitors.md) | Myfxbook, Collective2, Cornix, copy trading, Hyperliquid, Bittensor… |
-| [Why HashKey](Idea/04-why-hashkey.md) | HSP, oracles, gas, ecosystem; addresses verified on-chain |
-| [Architecture](Idea/05-architecture.md) | Contracts, flows, anti-gaming |
-| [Build architecture](Architecture/README.md) | Pages, backend, contracts, integrations, build order |
-| [Tech stack](Idea/06-tech-stack.md) | Choices and reasons |
-| [Go-to-market](Idea/08-go-to-market.md) | Cold start, business model, future |
-| [Risks](Idea/09-risks.md) | Risks and mitigations |
-| [Deployment](docs/DEPLOY.md) | Hosting, configuration, free-tier notes |
-| [Demo runbook](docs/DEMO.md) | How the demo is staged and recorded |
-| [Internal audit](docs/AUDIT.md) | Findings, fixes, live checks |
-| [Decisions log](Memory/04-decisions.md) | Every design decision and why |
+| [Product and trust model](docs/TRUST-MODEL.md) | Users, signal lifecycle, the seven trust rules, stated trust assumptions |
+| [Why Nundina](docs/WHY-NUNDINA.md) | The problem, why now, and the fit with Track 2 |
+| [Competitive landscape](docs/COMPETITORS.md) | Myfxbook, Collective2, Cornix, copy trading, Hyperliquid, Bittensor and how Nundina differs |
+| [Why HashKey Chain](docs/WHY-HASHKEY.md) | What we use from HashKey, addresses verified on-chain, oracle design |
+| [Architecture](docs/ARCHITECTURE.md) | Contracts, services, purchase sequence, anti-gaming, what runs today |
+| [Tech stack](docs/TECH-STACK.md) | Every technology choice and why |
+| [Go-to-market](docs/GO-TO-MARKET.md) | Cold start, distribution, business model, long-term direction |
+| [Risks](docs/RISKS.md) | Risks and mitigations |
+| [Design decisions](docs/DECISIONS.md) | Every significant design decision, why, and what was turned down |
+| [Demo](docs/DEMO.md) | Demo video, how to try it live, how to reproduce it locally |
+| [Deployment](docs/DEPLOY.md) | Hosting, configuration and operations |
+| [Internal audit](docs/AUDIT.md) | Contract review: findings, fixes, Slither triage, live checks |
+| [Contract security](contracts/SECURITY.md) | Security model, admin powers, pre-mainnet review |
 
 ## Team and license
 

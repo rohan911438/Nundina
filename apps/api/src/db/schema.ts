@@ -32,7 +32,7 @@ const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" 
 const createdAt = () => ts("created_at").notNull().defaultNow();
 const updatedAt = () => ts("updated_at").notNull().defaultNow();
 
-// ───────────────────────── the 12 product tables (Architecture/03 §3.3) ─────────────────────────
+// ───────────────────────── the 12 product tables (see docs/ARCHITECTURE.md) ─────────────────────────
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),

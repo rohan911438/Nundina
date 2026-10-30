@@ -1,6 +1,6 @@
 # Deployment
 
-Nundina runs on **HashKey Chain testnet (133)**. Mainnet needs an explicit go-ahead (see NEEDS-FROM-USER.md).
+Nundina runs on **HashKey Chain testnet (133)**. Mainnet needs an explicit go-ahead.
 
 | Part | Host | URL |
 |---|---|---|

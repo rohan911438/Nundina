@@ -89,4 +89,4 @@ What broke on the way, and the fixes:
 ## Open items
 
 - ~~Redeploy testnet~~ done 28 Oct (see the rerun above).
-- **Paid flows on testnet** (bond deposit, HSP purchase, credit, WIN payout, LOSS refund and slash) need HSP's test USDT/USDC (NEEDS item 28). The same flows run end to end on anvil in CI (`apps/api/test/purchases.test.ts`, `hspGateway.test.ts`, `apps/keeper/test`).
+- **Paid flows on testnet** (bond deposit, HSP purchase, credit, WIN payout, LOSS refund and slash) need HSP's test USDT/USDC. The same flows run end to end on anvil in CI (`apps/api/test/purchases.test.ts`, `hspGateway.test.ts`, `apps/keeper/test`).

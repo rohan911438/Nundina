@@ -1,29 +1,36 @@
-# Demo runbook (≤ 3 min video + Demo Day backup)
+# Demo
 
-Follows `Idea/07-deliverables-and-plan.md` §7.4 exactly. Record on the production chain if it's live, otherwise on testnet. If you record on a local chain, say so on screen.
+**Video:** https://youtu.be/ywom_FiJURU
 
-## T−60 min: stage
-1. `/status` is all green (API, relayer, keeper, bot, mcp).
-2. Pre-stage the settlement signals:
-   ```bash
-   DEMO_BULL_PRIVATE_KEY=0x… DEMO_BEAR_PRIVATE_KEY=0x… AGENT_AGGREGATOR_PRIVATE_KEY=0x… \
-   DEMO_EXPIRY_MIN=40 pnpm --filter @nundina/agent-aggregator stage-demo
-   ```
-   This posts a mirrored LONG/SHORT pair, so one settles WIN and one LOSS within about 40–55 min, plus an aggregator meta-signal with upstream bps. Write down the ids it prints.
-3. Buy both pair signals from a second wallet (web or Mini App) so there is a pot to pay out and to refund.
-4. Open these tabs: the Telegram channel, Blockscout (SignalBook, PerformanceEscrow, RevenueRouter), the HSP explorer, the web leaderboard and `/s/<id>` for each staged signal.
+## Try it live (HashKey Chain testnet)
 
-## Recording (3:00)
-| Time | Show | Proof on screen |
+1. Open https://nundina-signals.vercel.app/leaderboard and pick a provider or a live signal.
+2. On a signal page (`/s/<id>`), connect a wallet on HashKey testnet (chain 133). Free signals unlock in one tap; paid signals use HSP's testnet USDT or USDC.
+3. Watch the lifecycle timeline: committed → bought → touch proven or expired → settled → revealed.
+4. In Telegram, open [@Nundina_Signals_bot](https://t.me/Nundina_Signals_bot) and press **Start**. The menu button opens the Mini App.
+5. To post as a provider: `/start` → connect a wallet → `/link_channel`, then post `/link <code>` in your channel with the bot as admin. Your next signal post becomes an on-chain commit after you confirm it.
+6. System health for every component: https://nundina-signals.vercel.app/status
+
+## What the demo shows
+
+| Part | What happens | Proof |
 |---|---|---|
-| 0:00–0:25 | Hook: the ₹42 lakh Telegram scam headline. "Signal groups run on screenshots." | |
-| 0:25–1:00 | Provider posts "BTC LONG …" in the channel → bot confirm → lock card | Blockscout commit tx, timestamped before the move |
-| 1:00–1:40 | Execution agent: policy check (score, daily cap) → HSP pay → decrypt | HSP mandate + ACCEPT receipt, escrow credit tx, signal decrypted in the DMs or Mini App |
-| 1:40–2:20 | The staged pair settles: keeper proof → WIN paid, LOSS refunded + bond slice | `settle` txs and the escrow claim balances |
-| 2:20–2:45 | Aggregator meta-signal WIN → upstreams paid | `Routed` events on RevenueRouter, ERC-8004 feedback |
-| 2:45–3:00 | Leaderboard with this week's real providers. "Pay only when the call is right." | |
+| Lock | A provider posts "BTC LONG …" in a Telegram channel → the bot asks for confirmation → a locked card appears | Commit transaction on `SignalBook`, timestamped before the move |
+| Pay | A buyer (or an execution agent within its budget) pays per signal → the signal is decrypted on the device | Payment Mandate signature, transfer into `PerformanceEscrow`, escrow credit transaction |
+| Settle | The keeper proves a touch or resolves at expiry → WIN pays the provider, LOSS refunds the buyer with a bond slice | `settle` transaction and escrow claim balances |
+| A2A | An aggregator buys two upstream signals, blends them, and resells the meta-signal; the win is split back upstream | `Routed` events on `RevenueRouter`, ERC-8004 feedback |
+| Prove | The provider's score and the leaderboard update | Score recomputable from chain data (MCP `verify_track_record`) |
 
-## Backup
-- Before Demo Day, record the whole flow once more end to end (screen + voice) and keep it offline on the laptop and on a USB stick.
-- If the chain or HSP is down live, play the backup and show the same txs on Blockscout from the browser history.
-- The local fallback `pnpm --filter @nundina/keeper demo:aggregator` reproduces the A2A WIN on anvil in about 1 minute.
+## Reproduce locally
+
+The full agent-to-agent flow runs on a local chain in about a minute:
+
+```bash
+pnpm chain:local                                  # anvil on :8545, separate terminal
+pnpm contracts:deploy:local && pnpm contracts:export
+pnpm --filter @nundina/keeper demo:aggregator
+```
+
+It runs two upstream providers → an aggregator meta-signal → an execution agent buying it → keeper settlement → `Routed` payouts to both upstream providers.
+
+To stage a recording on a live chain, `pnpm --filter @nundina/agent-aggregator stage-demo` posts a mirrored LONG/SHORT pair with a short expiry (one settles WIN and one LOSS, whichever way BTC moves) plus an aggregator meta-signal. It needs two funded demo wallets and the aggregator key in the environment (`DEMO_BULL_PRIVATE_KEY`, `DEMO_BEAR_PRIVATE_KEY`, `AGENT_AGGREGATOR_PRIVATE_KEY`).

@@ -28,7 +28,7 @@ const NETWORKS = {
   },
   testnet: {
     rpc: () => need("HSK_TESTNET_RPC_URL"),
-    // TODO(confirm): testnet Blockscout URL (see NEEDS-FROM-USER.md)
+    // TODO(confirm): testnet Blockscout URL
     verifier: () => `${process.env.HSK_TESTNET_EXPLORER_URL ?? "https://testnet-explorer.hsk.xyz"}/api/`,
   },
   mainnet: {
