@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <rect width="1200" height="400" fill="#0a0b0d"/>
+  <g transform="translate(197 80) scale(7.5)">
+    <rect x="2" y="2" width="28" height="28" rx="9" fill="#eceef2"/>
+    <path d="M9.5 16.5l4.5 4.5 8.5-9.5" fill="none" stroke="#0a0b0d" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="477" y="252" fill="#eceef2" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="150" font-weight="600" letter-spacing="-4">nundina</text>
+</svg>
